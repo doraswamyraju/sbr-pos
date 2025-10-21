@@ -1,0 +1,52 @@
+Folder PATH listing for volume New Volume
+Volume serial number is 5AB4-B1B3
+C:.
+|   App.css
+|   App.js
+|   App.test.js
+|   index.css
+|   index.jsx
+|   logo.svg
+|   postcss.config.js
+|   PrintStyles.css
+|   project_structure_frontend.txt
+|   reportWebVitals.js
+|   setupTests.js
+|   tailwind.css
+|   
++---assets
+|       Main LOGO.png
+|       
++---components
+|   |   BarcodeModal.jsx
+|   |   ExcelImport.jsx
+|   |   InventoryDashboard.jsx
+|   |   InvoiceModal.jsx
+|   |   Layout.jsx
+|   |   MobileNavbar.jsx
+|   |   ProductForm.jsx
+|   |   PurchaseManagement.jsx
+|   |   
+|   \---common
+|           Header.jsx
+|           InvoiceModal.jsx
+|           Modal.jsx
+|           Sidebar.jsx
+|           
+\---pages
+        Customers.jsx
+        Inventory.jsx
+        landingpage.jsx
+        Leads.jsx
+        LoginPage.jsx
+        Purchases.jsx
+        Reports.jsx
+        Sales.jsx
+        SalesDesktop.jsx
+        SalesManagement.jsx
+        SalesMobile.jsx
+        Settings.jsx
+        Suppliers.jsx
+        Users.jsx
+        UserSettings.jsx
+        
