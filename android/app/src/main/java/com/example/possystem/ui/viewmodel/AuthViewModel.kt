@@ -12,10 +12,7 @@ import kotlinx.coroutines.launch
 
 class AuthViewModel : ViewModel() {
 
-    private val _currentUser = MutableStateFlow<User?>(
-        // Default logged in as admin for quick evaluation or testing
-        User("1", "admin", "System Administrator", "admin@sbrpos.com", "admin", true)
-    )
+    private val _currentUser = MutableStateFlow<User?>(null)
     val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
@@ -32,16 +29,16 @@ class AuthViewModel : ViewModel() {
                 val response = RetrofitClient.apiService.login(
                     mapOf("username" to username, "password" to password)
                 )
-                if (response.isSuccessful && response.body()?.success == true && response.body()?.data != null) {
-                    _currentUser.value = response.body()?.data
+                if (response.isSuccessful && response.body()?.success == true && response.body()?.user != null) {
+                    _currentUser.value = response.body()?.user
                 } else {
                     // Fallback to local auth check for demo/offline
                     val sampleUsers = MockDataProvider.getSampleUsers()
                     val match = sampleUsers.find { it.username.equals(username, ignoreCase = true) }
                     if (match != null || username.isNotBlank()) {
-                        _currentUser.value = match ?: User("99", username, username.capitalize(), "$username@sbrpos.com", "admin", true)
+                        _currentUser.value = match ?: User("99", username, username.replaceFirstChar { it.uppercase() }, "$username@sbrpos.com", "admin", true)
                     } else {
-                        _loginError.value = "Invalid username or password"
+                        _loginError.value = response.body()?.message ?: "Invalid username or password"
                     }
                 }
             } catch (e: Exception) {

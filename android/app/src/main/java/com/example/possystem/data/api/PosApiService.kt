@@ -9,7 +9,7 @@ interface PosApiService {
     @POST("auth.php")
     suspend fun login(
         @Body loginData: Map<String, String>
-    ): Response<ApiResponse<User>>
+    ): Response<LoginResponse>
 
     @GET("products.php")
     suspend fun getProducts(): Response<List<Product>>
@@ -30,7 +30,7 @@ interface PosApiService {
     ): Response<ApiResponse<Unit>>
 
     @GET("customers.php")
-    suspend fun getCustomers(): Response<List<Customer>>
+    suspend fun getCustomers(): Response<ApiResponse<List<Customer>>>
 
     @POST("customers.php")
     suspend fun addCustomer(

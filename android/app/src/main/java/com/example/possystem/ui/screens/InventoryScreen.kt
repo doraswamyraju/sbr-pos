@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -64,12 +65,22 @@ fun InventoryScreen(
                 .padding(16.dp)
         ) {
             // Inventory Stat Banner
+            val bannerGradient = Brush.horizontalGradient(
+                colors = listOf(
+                    Color(0xFF3B82F6),
+                    Color(0xFF2563EB)
+                )
+            )
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+                shape = RoundedCornerShape(20.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
             ) {
                 Row(
-                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    modifier = Modifier
+                        .background(bannerGradient)
+                        .padding(20.dp)
+                        .fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -77,21 +88,23 @@ fun InventoryScreen(
                         Text(
                             text = "Inventory Stock Overview",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
+                            color = Color.White
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Total SKUs: ${products.size} | Low Stock Items: $lowStockCount",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                            text = "Total SKUs: ${products.size}  |  Low Stock: $lowStockCount",
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.9f),
+                            fontWeight = FontWeight.Medium
                         )
                     }
                     if (lowStockCount > 0) {
                         Surface(
                             color = Color(0xFFEF4444),
-                            shape = RoundedCornerShape(20.dp)
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = "$lowStockCount Alert",
+                                text = "$lowStockCount Alerts",
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -102,29 +115,41 @@ fun InventoryScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Search Bar
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { inventoryViewModel.setSearchQuery(it) },
-                placeholder = { Text("Search inventory by name or SKU...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                placeholder = { Text("Search inventory by name or SKU...", color = Color.Gray) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF3B82F6)) },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF3B82F6),
+                    unfocusedBorderColor = Color.Gray.copy(alpha = 0.4f)
+                ),
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Category Chips
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 items(categories) { cat ->
                     val isSel = selectedCategory == cat
                     FilterChip(
                         selected = isSel,
                         onClick = { inventoryViewModel.setSelectedCategory(cat) },
-                        label = { Text(cat) }
+                        label = { Text(cat, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Color(0xFF3B82F6),
+                            selectedLabelColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(10.dp)
                     )
                 }
             }

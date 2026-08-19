@@ -136,6 +136,14 @@ data class UserSettings(
 
 data class ApiResponse<T>(
     val success: Boolean = true,
+    val status: String? = null,
     val message: String? = null,
     val data: T? = null
 )
+
+data class LoginResponse(
+    val success: Boolean = false,
+    val message: String? = null,
+    val user: User? = null
+)
+

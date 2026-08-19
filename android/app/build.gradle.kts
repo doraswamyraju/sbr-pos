@@ -68,6 +68,7 @@ dependencies {
   implementation(libs.retrofit.converter.gson)
   implementation(libs.okhttp.logging)
   implementation(libs.gson)
+  implementation(libs.play.services.code.scanner)
 
   // Tooling
   debugImplementation(libs.androidx.compose.ui.tooling)

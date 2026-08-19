@@ -88,7 +88,11 @@ fun PosScreen(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 IconButton(
-                    onClick = { posViewModel.setShowBarcodeSheet(true) },
+                    onClick = {
+                        com.example.possystem.MainActivity.startBarcodeScan { barcode ->
+                            posViewModel.onBarcodeScanned(barcode)
+                        }
+                    },
                     modifier = Modifier
                         .size(52.dp)
                         .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(12.dp))
@@ -150,10 +154,14 @@ fun PosScreen(
         }
 
         // Floating Cart Summary Bar
-        if (posViewModel.cartItemCount > 0) {
+        val cartItemsCount = remember(cart) { cart.sumOf { it.quantity } }
+        val cartSubtotal = remember(cart) { cart.sumOf { it.totalPrice } }
+        val cartFinalTotal = remember(cartSubtotal, discount) { (cartSubtotal - discount).coerceAtLeast(0.0) }
+        
+        if (cartItemsCount > 0) {
             FloatingCartBar(
-                itemCount = posViewModel.cartItemCount,
-                finalTotal = posViewModel.finalTotal,
+                itemCount = cartItemsCount,
+                finalTotal = cartFinalTotal,
                 onCheckoutClick = { posViewModel.setShowCheckoutSheet(true) },
                 modifier = Modifier
                     .align(Alignment.BottomCenter)

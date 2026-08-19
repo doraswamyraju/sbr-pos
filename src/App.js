@@ -99,10 +99,10 @@ function App() {
     return isAdminRole ? [...publicRoutes, ...adminRoutes] : publicRoutes;
   };
 
-  const mainMarginClass = !isSalesPage ? (sidebarExpanded ? 'md:ml-64' : 'md:ml-20') : '';
+  const mainMarginClass = !isSalesPage ? (sidebarExpanded ? 'md:pl-64' : 'md:pl-20') : '';
 
   return (
-    <div className="flex min-h-screen bg-gray-50 text-gray-900">
+    <div className="flex min-h-screen bg-gray-50 text-gray-900 w-full overflow-x-hidden">
       {!isSalesPage && (
         <div className="hidden md:block">
           <Sidebar
@@ -114,10 +114,12 @@ function App() {
         </div>
       )}
 
-      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${mainMarginClass}`}>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 w-full ${mainMarginClass}`}>
         {!isSalesPage && <Header user={currentUser} onLogout={handleLogout} sidebarExpanded={sidebarExpanded} />}
-        <main className={`flex-1 ${isSalesPage ? 'p-0' : 'p-4 md:p-6'} w-full`}>
-          <Routes>{getRoutes()}</Routes>
+        <main className={`flex-grow w-full ${isSalesPage ? 'p-0' : 'p-4 md:p-6'}`}>
+          <div className="max-w-7xl mx-auto w-full">
+            <Routes>{getRoutes()}</Routes>
+          </div>
         </main>
       </div>
 

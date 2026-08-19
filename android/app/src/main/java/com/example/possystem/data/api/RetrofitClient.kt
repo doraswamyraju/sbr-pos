@@ -8,8 +8,8 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    // Default for Android Emulator to connect to XAMPP on localhost: http://10.0.2.2/pos-system/server/api/
-    private var baseUrl: String = "http://10.0.2.2/pos-system/server/api/"
+    // Default to the production SBR POS API endpoint directly
+    private var baseUrl: String = "https://pos.sriddha.com/server/api/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY

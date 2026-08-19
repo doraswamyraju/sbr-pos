@@ -70,8 +70,8 @@ class PosViewModel : ViewModel() {
                 }
 
                 val custResponse = RetrofitClient.apiService.getCustomers()
-                if (custResponse.isSuccessful && !custResponse.body().isNullOrEmpty()) {
-                    _customers.value = custResponse.body()!!
+                if (custResponse.isSuccessful && custResponse.body()?.data != null) {
+                    _customers.value = custResponse.body()!!.data!!
                 } else {
                     _customers.value = MockDataProvider.getSampleCustomers()
                 }
@@ -90,6 +90,17 @@ class PosViewModel : ViewModel() {
 
     fun setSelectedCategory(category: String) {
         _selectedCategory.value = category
+    }
+
+    fun onBarcodeScanned(barcode: String) {
+        val cleanBarcode = barcode.trim()
+        val match = _products.value.find { 
+            it.sku?.trim()?.equals(cleanBarcode, ignoreCase = true) == true || 
+            it.id.trim().equals(cleanBarcode, ignoreCase = true) 
+        }
+        if (match != null) {
+            addToCart(match)
+        }
     }
 
     fun addToCart(product: Product) {

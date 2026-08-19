@@ -32,3 +32,31 @@ table {
 th, td {
   white-space: nowrap; /* prevent wrapping in table cells */
 }
+
+/* Header positioning layout helper classes */
+.header-fixed {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 64px;
+  transition: left 300ms ease-in-out;
+}
+.header-left-collapsed {
+  left: 80px;
+}
+.header-left-expanded {
+  left: 256px;
+}
+
+/* Add padding to page main view so header does not overlay content */
+main {
+  margin-top: 64px;
+}
+@media (max-width: 767px) {
+  .header-fixed {
+    left: 0;
+  }
+  main {
+    margin-top: 0;
+  }
+}

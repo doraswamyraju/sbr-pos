@@ -33,8 +33,8 @@ class CustomersViewModel : ViewModel() {
             _isLoading.value = true
             try {
                 val response = RetrofitClient.apiService.getCustomers()
-                if (response.isSuccessful && !response.body().isNullOrEmpty()) {
-                    _customers.value = response.body()!!
+                if (response.isSuccessful && response.body()?.data != null) {
+                    _customers.value = response.body()!!.data!!
                 } else {
                     _customers.value = MockDataProvider.getSampleCustomers()
                 }
