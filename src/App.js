@@ -1,5 +1,5 @@
 // src/App.js
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/common/Sidebar';
 import Header from './components/common/Header';
@@ -101,29 +101,29 @@ function App() {
 
   const mainMarginClass = !isSalesPage ? (sidebarExpanded ? 'md:ml-64' : 'md:ml-20') : '';
 
-  return (
-    <div className="flex">
-      {!isSalesPage && (
-        <div className="hidden md:block">
-          <Sidebar
-            userRole={currentUser?.role}
-            onLogout={handleLogout}
-            expanded={sidebarExpanded}
-            setExpanded={setSidebarExpanded}
-          />
-        </div>
-      )}
+  return (
+    <div className="flex min-h-screen bg-gray-50 text-gray-900">
+      {!isSalesPage && (
+        <div className="hidden md:block">
+          <Sidebar
+            userRole={currentUser?.role}
+            onLogout={handleLogout}
+            expanded={sidebarExpanded}
+            setExpanded={setSidebarExpanded}
+          />
+        </div>
+      )}
 
-      <div className={`flex-1 transition-all duration-300 ${mainMarginClass}`}>
-        <Header user={currentUser} onLogout={handleLogout} sidebarExpanded={sidebarExpanded} />
-        <div className="p-4 pt-6">
-          <Routes>{getRoutes()}</Routes>
-        </div>
-      </div>
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${mainMarginClass}`}>
+        {!isSalesPage && <Header user={currentUser} onLogout={handleLogout} sidebarExpanded={sidebarExpanded} />}
+        <main className={`flex-1 ${isSalesPage ? 'p-0' : 'p-4 md:p-6'} w-full`}>
+          <Routes>{getRoutes()}</Routes>
+        </main>
+      </div>
 
-      <MobileNavbar isAdmin={isAdminRole} />
-    </div>
-  );
+      <MobileNavbar isAdmin={isAdminRole} />
+    </div>
+  );
 }
 
 export default App;

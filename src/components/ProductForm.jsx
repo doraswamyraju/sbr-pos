@@ -1,8 +1,8 @@
+import { API_BASE_URL } from '../config';
 // src/components/ProductForm.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import BarcodeModal from './BarcodeModal'; // Ensure this path is correct
-import Modal from './common/Modal'; // Assuming Modal.jsx is in this folder
+import BarcodeModal from './BarcodeModal';
 import { FaBarcode } from 'react-icons/fa';
 
 const ProductForm = ({ onProductAdded, initialData }) => {
@@ -42,10 +42,10 @@ const ProductForm = ({ onProductAdded, initialData }) => {
     e.preventDefault();
     try {
       if (initialData?.id) {
-        await axios.put(`/sbr-pos/server/api/products.php?id=${initialData.id}`, formData);
+        await axios.put(`${API_BASE_URL}/server/api/products.php?id=${initialData.id}`, formData);
         alert('Product updated successfully!');
       } else {
-        await axios.post('/sbr-pos/server/api/products.php', formData);
+        await axios.post(`${API_BASE_URL}/server/api/products.php`, formData);
         alert('Product added successfully!');
       }
       if (onProductAdded) {
@@ -184,12 +184,11 @@ const ProductForm = ({ onProductAdded, initialData }) => {
       </div>
 
       {showBarcodeModal && (
-        <Modal onClose={() => setShowBarcodeModal(false)}>
-          <BarcodeModal
-            barcodes={Array(parseInt(numBarcodes)).fill(formData)}
-            onClose={() => setShowBarcodeModal(false)}
-          />
-        </Modal>
+        <BarcodeModal
+          barcodes={Array(parseInt(numBarcodes) || 1).fill(formData)}
+          onClose={() => setShowBarcodeModal(false)}
+          mode="print"
+        />
       )}
     </>
   );

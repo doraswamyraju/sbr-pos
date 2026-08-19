@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { FaEdit, FaChartLine, FaClipboardList, FaUserFriends, FaCalendar, FaDollarSign, FaSpinner } from 'react-icons/fa';
@@ -25,7 +26,7 @@ const ProjectDetails = () => {
         setError(null);
         try {
             // Fetch task progress counts
-            const taskProgressResponse = await axios.get(`http://localhost/pos-system/server/api/project_data.php?action=getTaskProgress&projectId=${project.id}`);
+            const taskProgressResponse = await axios.get(`${API_BASE_URL}/server/api/project_data.php?action=getTaskProgress&projectId=${project.id}`);
             const progressData = taskProgressResponse.data;
             setTaskData({
                 total: progressData.total_tasks || 0,
@@ -35,7 +36,7 @@ const ProjectDetails = () => {
             });
 
             // Fetch financial data
-            const financialResponse = await axios.get(`http://localhost/pos-system/server/api/project_data.php?action=getFinancialData&projectId=${project.id}`);
+            const financialResponse = await axios.get(`${API_BASE_URL}/server/api/project_data.php?action=getFinancialData&projectId=${project.id}`);
             const financeData = financialResponse.data;
             setFinancialData([
                 { name: 'Project Value', value: project.projectValue || 0, color: 'bg-indigo-500' },
@@ -45,7 +46,7 @@ const ProjectDetails = () => {
             ]);
 
             // Fetch expense analysis data
-            const expenseResponse = await axios.get(`http://localhost/pos-system/server/api/project_data.php?action=getExpenseData&projectId=${project.id}`);
+            const expenseResponse = await axios.get(`${API_BASE_URL}/server/api/project_data.php?action=getExpenseData&projectId=${project.id}`);
             const expenses = expenseResponse.data;
             setExpenseData([
                 { label: 'Material', value: expenses.material || 0, color: 'bg-blue-600' },
@@ -56,7 +57,7 @@ const ProjectDetails = () => {
             ]);
 
             // Fetch recent tasks for the table
-            const tasksResponse = await axios.get(`http://localhost/pos-system/server/api/tasks.php?projectId=${project.id}&limit=5`);
+            const tasksResponse = await axios.get(`${API_BASE_URL}/server/api/tasks.php?projectId=${project.id}&limit=5`);
             setTasks(tasksResponse.data);
 
         } catch (err) {
@@ -75,7 +76,7 @@ const ProjectDetails = () => {
 
     const onFormSave = async (data) => {
         try {
-            await axios.put(`http://localhost/pos-system/server/api/projects.php?id=${project.id}`, data, { headers: { 'Content-Type': 'application/json' } });
+            await axios.put(`${API_BASE_URL}/server/api/projects.php?id=${project.id}`, data, { headers: { 'Content-Type': 'application/json' } });
             setShowFormModal(false);
             fetchProjectData(); // Re-fetch data after update
         } catch (err) {

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/pages/Suppliers.jsx
 
 import React, { useState, useEffect } from 'react';
@@ -19,8 +20,7 @@ const Suppliers = () => {
         address: '' 
     });
 
-    const API_BASE_URL = 'https://rajugariventures.com/sbr-pos';
-
+    
     useEffect(() => {
         fetchSuppliers();
     }, []);

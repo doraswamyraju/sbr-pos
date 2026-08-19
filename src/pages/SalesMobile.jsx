@@ -83,7 +83,7 @@ const SalesMobile = (props) => {
         <button onClick={() => window.history.back()} className="text-sm text-gray-700">Back</button>
         <div className="flex-1 text-center">
           <img src="/logo.png" alt="logo" className="h-10 mx-auto object-contain" onError={(e) => { e.target.style.display = "none"; }} />
-          {!document.querySelector('img[src="/logo.png"]') && <div className="text-lg font-bold">SBR POS</div>}
+          {!document.querySelector('img[src="/logo.png"]') && <div className="text-sm font-bold">Sri Balaji Renewables POS</div>}
         </div>
         <div style={{ width: 40 }} />
       </div>

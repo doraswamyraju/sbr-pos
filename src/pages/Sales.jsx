@@ -1,5 +1,6 @@
 // src/pages/Sales.jsx
 import React, { useEffect, useState } from "react";
+import { API_BASE_URL } from '../config';
 import axios from "axios";
 import SalesDesktop from "./SalesDesktop";
 import SalesMobile from "./SalesMobile";
@@ -14,6 +15,8 @@ import SalesMobile from "./SalesMobile";
 // fallback user
 const fallbackUser = { id: 1, full_name: "Admin User" };
 
+const DEFAULT_WALKIN_CUSTOMER = { id: 0, full_name: "Walk-in Customer", phone_number: "-", email: "-" };
+
 const Sales = ({ user: incomingUser }) => {
   const [products, setProducts] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -21,7 +24,8 @@ const Sales = ({ user: incomingUser }) => {
   const [error, setError] = useState(null);
 
   const [cart, setCart] = useState([]);
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomer, setSelectedCustomer] = useState(DEFAULT_WALKIN_CUSTOMER);
+  const [heldCarts, setHeldCarts] = useState([]);
 
   const [showProductModal, setShowProductModal] = useState(false);
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
@@ -67,7 +71,7 @@ const Sales = ({ user: incomingUser }) => {
   // ADD NEW FUNCTION TO FETCH COMPANY INFO
   const fetchCompanyInfo = async () => {
     try {
-      const res = await axios.get("/sbr-pos/server/api/company_info.php");
+      const res = await axios.get(`${API_BASE_URL}/server/api/company_info.php`);
       // Normalize the data from the API response
       const data = res.data;
       if (data && data.company_name) {
@@ -115,8 +119,8 @@ const Sales = ({ user: incomingUser }) => {
     try {
       // Keep your existing endpoints
       const [pRes, cRes] = await Promise.all([
-        axios.get("/sbr-pos/server/api/products.php"),
-        axios.get("/sbr-pos/server/api/customers.php"),
+        axios.get(`${API_BASE_URL}/server/api/products.php`),
+        axios.get(`${API_BASE_URL}/server/api/customers.php`),
         // ADD THE NEW FETCH CALL
         fetchCompanyInfo()
       ]);
@@ -163,6 +167,64 @@ const Sales = ({ user: incomingUser }) => {
   const handleRemoveFromCart = (productId) => setCart(cart.filter((i) => i.id !== productId));
   const updateQuantity = (productId, qty) => setCart(cart.map((i) => (i.id === productId ? { ...i, quantity: qty } : i)));
 
+  const handleClearCart = () => {
+    setCart([]);
+    setSelectedCustomer(DEFAULT_WALKIN_CUSTOMER);
+    setDiscount(0);
+  };
+
+  const handleHoldCart = () => {
+    if (cart.length === 0) return;
+    const newHold = {
+      id: Date.now(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      customer: selectedCustomer || DEFAULT_WALKIN_CUSTOMER,
+      cart: [...cart],
+      discount
+    };
+    setHeldCarts(prev => [newHold, ...prev]);
+    setCart([]);
+    setSelectedCustomer(DEFAULT_WALKIN_CUSTOMER);
+    setDiscount(0);
+  };
+
+  const handleRecallCart = (holdId) => {
+    const target = heldCarts.find(h => h.id === holdId);
+    if (!target) return;
+    setCart(target.cart);
+    setSelectedCustomer(target.customer || DEFAULT_WALKIN_CUSTOMER);
+    setDiscount(target.discount || 0);
+    setHeldCarts(prev => prev.filter(h => h.id !== holdId));
+  };
+
+  useEffect(() => {
+    let buffer = "";
+    let lastTime = Date.now();
+
+    const handleKeyDown = (e) => {
+      const tag = e.target ? e.target.tagName : '';
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(tag)) return;
+
+      const now = Date.now();
+      if (now - lastTime > 150) {
+        buffer = "";
+      }
+      lastTime = now;
+
+      if (e.key === 'Enter') {
+        if (buffer.length > 2) {
+          handleBarcodeScanSuccess(buffer);
+          buffer = "";
+        }
+      } else if (e.key.length === 1) {
+        buffer += e.key;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [products, cart, selectedCustomer]);
+
   const subtotal = cart.reduce((acc, item) => acc + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
   const payable = Math.max(0, subtotal - Number(discount || 0));
 
@@ -175,7 +237,7 @@ const Sales = ({ user: incomingUser }) => {
     }
     try {
       const res = await axios.get(
-        `/sbr-pos/server/api/barcode_lookup.php?sku=${encodeURIComponent(scannedBarcode)}`
+        `${API_BASE_URL}/server/api/barcode_lookup.php?sku=${encodeURIComponent(scannedBarcode)}`
       );
       const product = res.data?.product ?? res.data?.data ?? res.data;
       if (!product) {
@@ -378,7 +440,7 @@ const handleProcessSale = async () => {
 
   try {
     const res = await axios.post(
-      "/sbr-pos/server/api/sales.php",
+      `${API_BASE_URL}/server/api/sales.php`,
       payload,
       {
         headers: {
@@ -450,9 +512,12 @@ const handleProcessSale = async () => {
       }
 
       openPrintWindowWithHtml(toPrintHtml, /*autoPrint=*/false);
-    } 
-  } // <--- This closing brace was missing, causing the error.
-   catch (err) {
+    } else {
+      console.error("Sale failed. Backend response:", res.data);
+      const msg = res.data?.message || JSON.stringify(res.data) || "Server rejected the sale request.";
+      alert(`Process Sale failed: ${msg}`);
+    }
+  } catch (err) {
     console.error("handleProcessSale error:", err);
 
     if (err.response) {
@@ -488,7 +553,7 @@ const handleProcessSale = async () => {
   const handleAddNewCustomer = async (e) => {
     e?.preventDefault();
     try {
-      await axios.post("/sbr-pos/server/api/customers.php", newCustomer, { withCredentials: true });
+      await axios.post(`${API_BASE_URL}/server/api/customers.php`, newCustomer, { withCredentials: true });
       alert("New customer added!");
       setShowNewCustomerModal(false);
       setNewCustomer({ full_name: "", phone_number: "", email: "", address: "" });
@@ -515,6 +580,10 @@ const handleProcessSale = async () => {
     handleAddToCart,
     handleRemoveFromCart,
     updateQuantity,
+    handleClearCart,
+    handleHoldCart,
+    handleRecallCart,
+    heldCarts,
     subtotal,
     payable,
     discount,
@@ -544,8 +613,6 @@ const handleProcessSale = async () => {
     handleAddNewCustomer,
     filteredProducts,
     filteredCustomers,
-    lastSale,
-    setLastSale,
   };
 
   if (loading) return <div className="p-4">Loading...</div>;

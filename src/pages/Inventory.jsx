@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/pages/Inventory.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -20,10 +21,8 @@ const Inventory = ({ currentUser }) => {
 
     const fetchData = async () => {
         try {
-            const productsResponse = await axios.get('/sbr-pos/server/api/products.php');
-            const suppliersResponse = await axios.get('/sbr-pos/server/api/suppliers.php');
-            // const productsResponse = await axios.get('http://localhost/pos-system/server/api/products.php');
-            // const suppliersResponse = await axios.get('http://localhost/pos-system/server/api/suppliers.php');
+            const productsResponse = await axios.get(`${API_BASE_URL}/server/api/products.php`);
+            const suppliersResponse = await axios.get(`${API_BASE_URL}/server/api/suppliers.php`);
             setProducts(productsResponse.data);
             setSuppliers(suppliersResponse.data);
             setLoading(false);
@@ -33,7 +32,7 @@ const Inventory = ({ currentUser }) => {
             setLoading(false);
         }
     };
-    
+
     const getHeaderTitle = () => {
         if (!currentUser) return "Inventory";
         const role = (currentUser.role || '').toLowerCase();
@@ -47,12 +46,9 @@ const Inventory = ({ currentUser }) => {
     if (error) return <div className="text-center p-4 text-red-600">{error}</div>;
 
     return (
-        <div className="bg-gray-100 min-h-screen">
-            <header className="bg-white shadow p-4">
-                <h1 className="text-xl font-semibold">{getHeaderTitle()}</h1>
-            </header>
-            <main className="container mx-auto p-4 pb-28 md:pb-6">
-                <InventoryDashboard 
+        <div className="min-h-screen bg-gray-100">
+            <main className="w-full p-4 pb-28 md:pb-6 md:p-6">
+                <InventoryDashboard
                     onRecordPurchase={() => setShowPurchaseModal(true)}
                     products={products}
                     suppliers={suppliers}
@@ -60,9 +56,9 @@ const Inventory = ({ currentUser }) => {
                     onAddProduct={() => setShowNewProductModal(true)}
                 />
             </main>
-            
+
             {showPurchaseModal && (
-                <PurchaseManagement 
+                <PurchaseManagement
                     products={products}
                     suppliers={suppliers}
                     onPurchaseComplete={() => {

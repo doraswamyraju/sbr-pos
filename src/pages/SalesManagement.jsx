@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/pages/SalesManagement.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -17,8 +18,7 @@ const SalesManagement = () => {
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     const navigate = useNavigate();
 
-    const API_BASE_URL = 'https://rajugariventures.com/sbr-pos';
-
+    
     useEffect(() => {
         fetchSales();
         fetchCompanyInfo();

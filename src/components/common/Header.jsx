@@ -15,7 +15,7 @@ const Header = ({ user = {}, onLogout = () => {}, sidebarExpanded = false, compa
           {company.logoUrl && (
             <img src={company.logoUrl} alt="Company Logo" className="h-10 w-auto" onError={(e) => { e.target.style.display = 'none'; }} />
           )}
-          <div className="text-lg font-semibold text-gray-800">SBR POS System</div>
+          <div className="text-lg font-semibold text-gray-800">Sri Balaji Renewables POS</div>
         </div>
 
         <div className="flex items-center gap-4">

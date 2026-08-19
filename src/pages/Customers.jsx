@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/pages/Customers.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -35,8 +36,8 @@ const Customers = () => {
 
   const fetchCustomers = async () => {
     try {
-       //const response = await axios.get('http://localhost/pos-system/server/api/customers.php');
-      const response = await axios.get('/sbr-pos/server/api/customers.php');
+       //const response = await axios.get(API_BASE_URL + '/server/api/customers.php');
+      const response = await axios.get(`${API_BASE_URL}/server/api/customers.php`);
       if (response.data.status === 'success') {
         setCustomers(response.data.data);
       } else {
@@ -71,8 +72,8 @@ const Customers = () => {
   const handleDeleteCustomer = async (customerId) => {
     if (window.confirm('Are you sure you want to mark this customer as inactive?')) {
       try {
-        //const response = await axios.delete(`http://localhost/pos-system/server/api/customers.php?id=${customerId}`);
-        const response = await axios.delete(`/sbr-pos/server/api/customers.php?id=${customerId}`);
+        //const response = await axios.delete(`${API_BASE_URL}/server/api/customers.php?id=${customerId}`);
+        const response = await axios.delete(`${API_BASE_URL}/server/api/customers.php?id=${customerId}`);
         if (response.data.status === 'success') {
           setMessage('Customer marked as inactive successfully!');
           fetchCustomers();
@@ -100,13 +101,13 @@ const Customers = () => {
     try {
       let response;
       if (currentCustomer) {
-        response = await axios.put(`/sbr-pos/server/api/customers.php?id=${currentCustomer.id}`, customerData);
+        response = await axios.put(`${API_BASE_URL}/server/api/customers.php?id=${currentCustomer.id}`, customerData);
       } else {
-        response = await axios.post('/sbr-pos/server/api/customers.php', customerData);
+        response = await axios.post(`${API_BASE_URL}/server/api/customers.php`, customerData);
       }
-      //  response = await axios.put(`http://localhost/pos-system/server/api/customers.php?id=${currentCustomer.id}`, customerData);
+      //  response = await axios.put(`${API_BASE_URL}/server/api/customers.php?id=${currentCustomer.id}`, customerData);
       // } else {
-      //   response = await axios.post('http://localhost/pos-system/server/api/customers.php', customerData);
+      //   response = await axios.post(API_BASE_URL + '/server/api/customers.php', customerData);
       // }
       
       if (response.data.status === 'success') {

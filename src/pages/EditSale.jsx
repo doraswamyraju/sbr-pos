@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/pages/EditSale.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -27,9 +28,9 @@ const EditSale = () => {
         const fetchData = async () => {
             try {
                 const [saleRes, customersRes, productsRes] = await Promise.all([
-                    axios.get(`/sbr-pos/server/api/sales.php?id=${id}`),
-                    axios.get("/sbr-pos/server/api/customers.php"),
-                    axios.get("/sbr-pos/server/api/products.php")
+                    axios.get(`${API_BASE_URL}/server/api/sales.php?id=${id}`),
+                    axios.get(`${API_BASE_URL}/server/api/customers.php`),
+                    axios.get(`${API_BASE_URL}/server/api/products.php`)
                 ]);
 
                 // Set initial customers and products lists FIRST to avoid the filter error
@@ -133,7 +134,7 @@ const EditSale = () => {
         };
 
         try {
-            const response = await axios.put(`/sbr-pos/server/api/edit_sale.php`, payload);
+            const response = await axios.put(`${API_BASE_URL}/server/api/edit_sale.php`, payload);
             if (response.data.success) {
                 alert('Sale updated successfully!');
                 navigate('/sales-management');

@@ -1,0 +1,143 @@
+package com.example.possystem.ui.screens
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.possystem.ui.viewmodel.AuthViewModel
+import com.example.possystem.ui.viewmodel.CustomersViewModel
+import com.example.possystem.ui.viewmodel.PurchasesViewModel
+import com.example.possystem.ui.viewmodel.ReportsViewModel
+import com.example.possystem.ui.viewmodel.UsersSettingsViewModel
+
+enum class MoreSubScreen {
+    GRID, CUSTOMERS, PURCHASES, REPORTS, SETTINGS
+}
+
+@Composable
+fun MoreScreen(
+    customersViewModel: CustomersViewModel,
+    purchasesViewModel: PurchasesViewModel,
+    reportsViewModel: ReportsViewModel,
+    usersSettingsViewModel: UsersSettingsViewModel,
+    authViewModel: AuthViewModel
+) {
+    var subScreen by remember { mutableStateOf(MoreSubScreen.GRID) }
+
+    if (subScreen != MoreSubScreen.GRID) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { subScreen = MoreSubScreen.GRID }) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Back to More")
+                }
+                Text(
+                    text = when (subScreen) {
+                        MoreSubScreen.CUSTOMERS -> "Customers"
+                        MoreSubScreen.PURCHASES -> "Purchases"
+                        MoreSubScreen.REPORTS -> "Reports & Analytics"
+                        MoreSubScreen.SETTINGS -> "Settings & Users"
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                )
+            }
+
+            Box(modifier = Modifier.weight(1f)) {
+                when (subScreen) {
+                    MoreSubScreen.CUSTOMERS -> CustomersScreen(customersViewModel = customersViewModel)
+                    MoreSubScreen.PURCHASES -> PurchasesScreen(purchasesViewModel = purchasesViewModel)
+                    MoreSubScreen.REPORTS -> ReportsScreen(reportsViewModel = reportsViewModel)
+                    MoreSubScreen.SETTINGS -> UsersSettingsScreen(usersSettingsViewModel = usersSettingsViewModel, authViewModel = authViewModel)
+                    else -> {}
+                }
+            }
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "More Modules & Tools",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+            )
+            Text(
+                text = "Select a module to view records & manage setup",
+                fontSize = 12.sp,
+                color = Color.Gray
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            val menuItems = listOf(
+                MoreMenuItem("Customers Directory", "Manage customer profiles & debts", Icons.Default.People, Color(0xFF3B82F6), MoreSubScreen.CUSTOMERS),
+                MoreMenuItem("Purchases Orders", "Supplier restock & PO logs", Icons.Default.ShoppingBag, Color(0xFF10B981), MoreSubScreen.PURCHASES),
+                MoreMenuItem("Reports & Analytics", "Financial revenue & sales charts", Icons.Default.BarChart, Color(0xFF8B5CF6), MoreSubScreen.REPORTS),
+                MoreMenuItem("Settings & Users", "API URL, company profile & user roles", Icons.Default.Settings, Color(0xFFF59E0B), MoreSubScreen.SETTINGS)
+            )
+
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(menuItems) { item ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { subScreen = item.targetScreen },
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.Start
+                        ) {
+                            Surface(
+                                color = item.color.copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.size(44.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(imageVector = item.icon, contentDescription = null, tint = item.color)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(text = item.title, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text(text = item.subtitle, fontSize = 11.sp, color = Color.Gray, maxLines = 2)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+data class MoreMenuItem(
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val color: Color,
+    val targetScreen: MoreSubScreen
+)

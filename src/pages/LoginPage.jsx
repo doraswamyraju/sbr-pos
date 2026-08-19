@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/pages/LoginPage.jsx
 import React, { useState } from 'react';
 import axios from 'axios';
@@ -18,8 +19,7 @@ const LoginPage = ({ onLogin }) => {
     setError('');
 
     try {
-      const response = await axios.post('/sbr-pos/server/api/auth.php', { username, password });
-      //const response = await axios.post('http://localhost/pos-system/server/api/auth.php', { username, password });
+      const response = await axios.post(`${API_BASE_URL}/server/api/auth.php`, { username, password });
       
       if (response.data.success) {
         onLogin(response.data.user);
@@ -41,11 +41,11 @@ const LoginPage = ({ onLogin }) => {
         <div className="text-center mb-6">
           <img 
             src={logo} 
-            alt="SBR POS Logo" 
+            alt="Sri Balaji Renewables POS Logo" 
             className="mx-auto h-16 w-auto mb-2" 
             onError={(e) => { e.target.style.display = 'none'; }}
           />
-          <h1 className="text-2xl font-bold text-gray-800">Login to SBR POS</h1>
+          <h1 className="text-xl font-bold text-gray-800">Login to Sri Balaji Renewables POS</h1>
         </div>
 
         {error && (

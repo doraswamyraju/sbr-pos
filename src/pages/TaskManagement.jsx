@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/pages/TaskManagement.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
@@ -27,7 +28,7 @@ const TaskManagement = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await axios.get(`http://localhost/pos-system/server/api/tasks.php?projectId=${projectId}`);
+            const response = await axios.get(`${API_BASE_URL}/server/api/tasks.php?projectId=${projectId}`);
             const normalizedTasks = response.data.map(task => ({
                 ...task,
                 subtasks: task.subtasks || []
@@ -44,7 +45,7 @@ const TaskManagement = () => {
 
     const fetchStatuses = async () => {
         try {
-            const response = await axios.get('http://localhost/pos-system/server/api/tasks.php?statuses=true');
+            const response = await axios.get(API_BASE_URL + '/server/api/tasks.php?statuses=true');
             setStatuses(response.data);
         } catch (err) {
             console.error('Failed to fetch statuses:', err);
@@ -84,7 +85,7 @@ const TaskManagement = () => {
     const handleDeleteTask = async (id) => {
         if (!window.confirm('Are you sure you want to delete this task?')) return;
         try {
-            await axios.delete(`http://localhost/pos-system/server/api/tasks.php?id=${id}`);
+            await axios.delete(`${API_BASE_URL}/server/api/tasks.php?id=${id}`);
             fetchTasks();
         } catch (err) {
             console.error('Error deleting task:', err);
@@ -99,7 +100,7 @@ const TaskManagement = () => {
         }
 
         try {
-            const response = await axios.post('http://localhost/pos-system/server/api/tasks.php', { ...dataToDuplicate, projectId, name: `${dataToDuplicate.name} (Copy)` }, { headers: { 'Content-Type': 'application/json' } });
+            const response = await axios.post(API_BASE_URL + '/server/api/tasks.php', { ...dataToDuplicate, projectId, name: `${dataToDuplicate.name} (Copy)` }, { headers: { 'Content-Type': 'application/json' } });
             const newTaskId = response.data.id;
 
             if (task.subtasks && task.subtasks.length > 0) {
@@ -116,7 +117,7 @@ const TaskManagement = () => {
     const duplicateSubtasks = async (subtasks, parentId, projectId) => {
         for (const subtask of subtasks) {
             const { id, ...subtaskData } = subtask;
-            const response = await axios.post('http://localhost/pos-system/server/api/tasks.php', { ...subtaskData, projectId, parentId, name: `${subtaskData.name} (Copy)` }, { headers: { 'Content-Type': 'application/json' } });
+            const response = await axios.post(API_BASE_URL + '/server/api/tasks.php', { ...subtaskData, projectId, parentId, name: `${subtaskData.name} (Copy)` }, { headers: { 'Content-Type': 'application/json' } });
             const newSubtaskId = response.data.id;
 
             if (subtask.subtasks && subtask.subtasks.length > 0) {
@@ -127,7 +128,7 @@ const TaskManagement = () => {
 
     const handleMoveTaskDown = async (taskId) => {
         try {
-            await axios.put(`http://localhost/pos-system/server/api/tasks.php?id=${taskId}`, { action: 'move_down' }, { headers: { 'Content-Type': 'application/json' } });
+            await axios.put(`${API_BASE_URL}/server/api/tasks.php?id=${taskId}`, { action: 'move_down' }, { headers: { 'Content-Type': 'application/json' } });
             fetchTasks();
         } catch (err) {
             console.error('Failed to move task down:', err);
@@ -138,9 +139,9 @@ const TaskManagement = () => {
     const onFormSave = async (taskData) => {
         try {
             if (currentTask) {
-                await axios.put(`http://localhost/pos-system/server/api/tasks.php?id=${currentTask.id}`, taskData, { headers: { 'Content-Type': 'application/json' } });
+                await axios.put(`${API_BASE_URL}/server/api/tasks.php?id=${currentTask.id}`, taskData, { headers: { 'Content-Type': 'application/json' } });
             } else {
-                await axios.post('http://localhost/pos-system/server/api/tasks.php', { ...taskData, projectId, progress: 0 }, { headers: { 'Content-Type': 'application/json' } });
+                await axios.post(API_BASE_URL + '/server/api/tasks.php', { ...taskData, projectId, progress: 0 }, { headers: { 'Content-Type': 'application/json' } });
             }
             setShowTaskFormModal(false);
             fetchTasks();
@@ -152,7 +153,7 @@ const TaskManagement = () => {
 
     const onSubtaskSave = async (subtaskData) => {
         try {
-            await axios.post('http://localhost/pos-system/server/api/tasks.php', { ...subtaskData, projectId, parentId: parentTask.id, progress: 0 }, { headers: { 'Content-Type': 'application/json' } });
+            await axios.post(API_BASE_URL + '/server/api/tasks.php', { ...subtaskData, projectId, parentId: parentTask.id, progress: 0 }, { headers: { 'Content-Type': 'application/json' } });
             setShowSubtaskModal(false);
             fetchTasks();
         } catch (err) {

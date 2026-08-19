@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/pages/Projects.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -16,7 +17,7 @@ const Projects = () => {
     const fetchProjects = async () => {
         setLoading(true);
         try {
-            const response = await axios.get('http://localhost/pos-system/server/api/projects.php');
+            const response = await axios.get(API_BASE_URL + '/server/api/projects.php');
             setProjects(response.data);
         } catch (err) {
             console.error('Failed to fetch projects:', err);
@@ -43,7 +44,7 @@ const Projects = () => {
     const handleDeleteProject = async (id) => {
         if (!window.confirm('Are you sure you want to delete this project?')) return;
         try {
-            await axios.delete(`http://localhost/pos-system/server/api/projects.php?id=${id}`);
+            await axios.delete(`${API_BASE_URL}/server/api/projects.php?id=${id}`);
             fetchProjects();
         } catch (err) {
             console.error('Error deleting project:', err);
@@ -54,9 +55,9 @@ const Projects = () => {
     const onFormSave = async (data) => {
         try {
             if (currentProject) {
-                await axios.put(`http://localhost/pos-system/server/api/projects.php?id=${currentProject.id}`, data, { headers: { 'Content-Type': 'application/json' } });
+                await axios.put(`${API_BASE_URL}/server/api/projects.php?id=${currentProject.id}`, data, { headers: { 'Content-Type': 'application/json' } });
             } else {
-                await axios.post('http://localhost/pos-system/server/api/projects.php', data, { headers: { 'Content-Type': 'application/json' } });
+                await axios.post(API_BASE_URL + '/server/api/projects.php', data, { headers: { 'Content-Type': 'application/json' } });
             }
             setShowFormModal(false);
             fetchProjects();

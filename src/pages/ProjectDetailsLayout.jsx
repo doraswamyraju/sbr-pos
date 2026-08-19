@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/pages/ProjectDetailsLayout.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, Outlet } from 'react-router-dom';
@@ -13,7 +14,7 @@ const ProjectDetailsLayout = () => {
     const fetchProject = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`http://localhost/pos-system/server/api/projects.php?id=${id}`);
+            const response = await axios.get(`${API_BASE_URL}/server/api/projects.php?id=${id}`);
             const fetchedProject = response.data;
             if (fetchedProject) {
                 const normalizedProject = {

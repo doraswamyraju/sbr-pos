@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaSave } from 'react-icons/fa';
@@ -23,8 +24,7 @@ const Settings = () => {
     const [logoFile, setLogoFile] = useState(null);
     const [signatureFile, setSignatureFile] = useState(null);
 
-    const API_BASE_URL = 'https://rajugariventures.com/sbr-pos';
-
+    
     useEffect(() => {
         fetchCompanyInfo();
     }, []);

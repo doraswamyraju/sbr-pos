@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/components/BarcodeModal.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import Modal from './common/Modal';
@@ -142,7 +143,7 @@ const BarcodeModal = ({ barcodes = [], onClose, onScanSuccess, mode = 'scan' }) 
       if (onScanSuccess) onScanSuccess(txt);
       
       try {
-        const res = await axios.get(`/sbr-pos/server/api/barcode_lookup.php?sku=${encodeURIComponent(txt)}`);
+        const res = await axios.get(`${API_BASE_URL}/server/api/barcode_lookup.php?sku=${encodeURIComponent(txt)}`);
         const product = res.data?.product ?? res.data?.data ?? res.data;
         if (product) {
           onScanSuccess(product);

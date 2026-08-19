@@ -1,49 +1,52 @@
 <?php
-// C:\\xampp\\htdocs\\pos-system\\server\\api\\users.php
+$allowed_origins = ['http://localhost:3000', 'https://rajugariventures.com', 'http://127.0.0.1:3000'];
+if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+} else {
+    header("Access-Control-Allow-Origin: http://localhost:3000");
+}
+header("Access-Control-Allow-Credentials: true");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With');
-
-// Handle preflight OPTIONS request
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-include '../db_connect.php'; // Ensure this file correctly establishes a MySQLi connection
+include '../db_connect.php';
 
-// Function to send a JSON response and exit
 function apiResponse($status, $message, $data = []) {
     echo json_encode(['status' => $status, 'message' => $message, 'data' => $data]);
     exit();
 }
 
-// Ensure $conn exists
 if (!isset($conn)) {
     apiResponse('error', 'Database connection not available');
 }
 
-// Check if the is_active column exists and add it if not
-$result = $conn->query("SHOW COLUMNS FROM `users` LIKE 'is_active'");
-if ($result && $result->num_rows == 0) {
+// Auto-migration for is_active and permissions columns
+$res1 = $conn->query("SHOW COLUMNS FROM `users` LIKE 'is_active'");
+if ($res1 && $res1->num_rows == 0) {
     $conn->query("ALTER TABLE `users` ADD `is_active` TINYINT(1) NOT NULL DEFAULT 1");
 }
 
-// Allowed printer type values
-$ALLOWED_PRINTER_TYPES = ['auto', 'thermal-3in', 'regular-a4'];
+$res2 = $conn->query("SHOW COLUMNS FROM `users` LIKE 'permissions'");
+if ($res2 && $res2->num_rows == 0) {
+    $conn->query("ALTER TABLE `users` ADD `permissions` TEXT NULL");
+}
 
+$ALLOWED_PRINTER_TYPES = ['auto', 'thermal-3in', 'regular-a4'];
 $method = $_SERVER['REQUEST_METHOD'];
 
 switch ($method) {
     case 'GET':
-        // Return list of users (include printer_type)
-        $sql = "SELECT id, username, role, full_name, is_active, IFNULL(printer_type, 'auto') AS printer_type FROM users";
+        $sql = "SELECT id, username, role, full_name, is_active, IFNULL(printer_type, 'auto') AS printer_type, permissions FROM users";
         $result = $conn->query($sql);
         $users = [];
         if ($result && $result->num_rows > 0) {
             while ($row = $result->fetch_assoc()) {
+                $row['permissions'] = !empty($row['permissions']) ? json_decode($row['permissions'], true) : null;
                 $users[] = $row;
             }
         }
@@ -51,7 +54,6 @@ switch ($method) {
         break;
 
     case 'POST':
-        // Create new user; accept optional printer_type
         $data = json_decode(file_get_contents("php://input"), true);
         if (!is_array($data)) {
             apiResponse('error', 'Invalid JSON payload');
@@ -64,34 +66,37 @@ switch ($method) {
         $full_name = $data['full_name'] ?? '';
         $is_active = isset($data['is_active']) ? (int)$data['is_active'] : 1;
         $printer_type = isset($data['printer_type']) ? trim($data['printer_type']) : 'auto';
+        $permissions = isset($data['permissions']) ? json_encode($data['permissions']) : json_encode([
+            'can_view_purchase_price' => ($role === 'admin'),
+            'can_manage_inventory' => true,
+            'can_manage_users' => ($role === 'admin'),
+            'can_view_reports' => ($role === 'admin')
+        ]);
 
-        // Validate printer_type
-        if ($printer_type === '' || !in_array($printer_type, $ALLOWED_PRINTER_TYPES, true)) {
+        if (!in_array($printer_type, $ALLOWED_PRINTER_TYPES, true)) {
             $printer_type = 'auto';
         }
 
-        // Basic validation
         if (empty($username) || empty($password_raw)) {
             apiResponse('error', 'Username and password are required');
         }
 
-        // Insert with printer_type
-        $stmt = $conn->prepare("INSERT INTO users (username, password, role, full_name, is_active, printer_type) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO users (username, password, role, full_name, is_active, printer_type, permissions) VALUES (?, ?, ?, ?, ?, ?, ?)");
         if (!$stmt) {
             apiResponse('error', 'Prepare failed: ' . $conn->error);
         }
-        $stmt->bind_param("ssssds", $username, $password, $role, $full_name, $is_active, $printer_type);
+        $stmt->bind_param("ssssiss", $username, $password, $role, $full_name, $is_active, $printer_type, $permissions);
 
         if ($stmt->execute()) {
             $newId = $stmt->insert_id;
-            // Return newly created user (id + provided fields)
             $created = [
                 'id' => $newId,
                 'username' => $username,
                 'role' => $role,
                 'full_name' => $full_name,
                 'is_active' => $is_active,
-                'printer_type' => $printer_type
+                'printer_type' => $printer_type,
+                'permissions' => json_decode($permissions, true)
             ];
             apiResponse('success', 'User added successfully', $created);
         } else {
@@ -101,7 +106,6 @@ switch ($method) {
         break;
 
     case 'PUT':
-        // Update user by id (only update fields provided)
         $data = json_decode(file_get_contents("php://input"), true);
         if (!is_array($data)) {
             apiResponse('error', 'Invalid JSON payload');
@@ -112,7 +116,6 @@ switch ($method) {
             apiResponse('error', 'User ID is required for update.');
         }
 
-        // Build dynamic SET clause
         $set_clause = [];
         $params = [];
         $types = "";
@@ -139,16 +142,19 @@ switch ($method) {
         }
         if (isset($data['printer_type'])) {
             $pt = trim($data['printer_type']);
-            if (!in_array($pt, $ALLOWED_PRINTER_TYPES, true)) {
-                apiResponse('error', 'Invalid printer_type. Allowed: ' . implode(', ', $ALLOWED_PRINTER_TYPES));
+            if (in_array($pt, $ALLOWED_PRINTER_TYPES, true)) {
+                $set_clause[] = "printer_type = ?";
+                $params[] = $pt;
+                $types .= "s";
             }
-            $set_clause[] = "printer_type = ?";
-            $params[] = $pt;
+        }
+        if (isset($data['permissions'])) {
+            $set_clause[] = "permissions = ?";
+            $params[] = json_encode($data['permissions']);
             $types .= "s";
         }
 
         if (isset($data['password']) && $data['password'] !== '') {
-            // Update password if provided (non-empty)
             $hashed = password_hash($data['password'], PASSWORD_DEFAULT);
             $set_clause[] = "password = ?";
             $params[] = $hashed;
@@ -168,7 +174,6 @@ switch ($method) {
             apiResponse('error', 'Prepare failed: ' . $conn->error);
         }
 
-        // Bind params dynamically
         $bind_names[] = $types;
         for ($i = 0; $i < count($params); $i++) {
             $bind_name = 'bind' . $i;
@@ -178,13 +183,15 @@ switch ($method) {
         call_user_func_array([$stmt, 'bind_param'], $bind_names);
 
         if ($stmt->execute()) {
-            // Return updated user (include printer_type)
-            $sel = $conn->prepare("SELECT id, username, role, full_name, is_active, IFNULL(printer_type, 'auto') AS printer_type FROM users WHERE id = ? LIMIT 1");
+            $sel = $conn->prepare("SELECT id, username, role, full_name, is_active, IFNULL(printer_type, 'auto') AS printer_type, permissions FROM users WHERE id = ? LIMIT 1");
             if ($sel) {
                 $sel->bind_param("i", $id);
                 $sel->execute();
                 $res = $sel->get_result();
                 $updatedUser = $res->fetch_assoc();
+                if ($updatedUser) {
+                    $updatedUser['permissions'] = !empty($updatedUser['permissions']) ? json_decode($updatedUser['permissions'], true) : null;
+                }
                 $sel->close();
                 apiResponse('success', 'User updated successfully', $updatedUser);
             } else {

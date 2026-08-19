@@ -9,6 +9,7 @@ export default function LeadCard({
   handleDeleteLead,
   onOpenConvertModal,
   setShowCalendarModal,
+  onOpenSchedule,
 }) {
   return (
     <div className="md:hidden space-y-4">
@@ -57,7 +58,7 @@ export default function LeadCard({
 
           <div className="flex space-x-2 mt-2 text-sm font-semibold">
             <button
-              onClick={() => setShowCalendarModal(true)}
+              onClick={() => onOpenSchedule ? onOpenSchedule(lead) : (setShowCalendarModal && setShowCalendarModal(true))}
               className="flex-1 py-2 px-3 rounded-lg text-yellow-600 hover:bg-gray-100 flex items-center justify-center space-x-1"
             >
               <FaCalendarAlt className="w-4 h-4" /> <span>Schedule</span>

@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/components/InventoryDashboard.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
@@ -134,8 +135,8 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, suppliers, onDataC
   const fetchProducts = async () => {
     setLoading(true);
     try {
-       //const response = await axios.get('http://localhost/pos-system/server/api/products.php');
-      const response = await axios.get('/sbr-pos/server/api/products.php');
+       //const response = await axios.get(API_BASE_URL + '/server/api/products.php');
+      const response = await axios.get(`${API_BASE_URL}/server/api/products.php`);
       const data = response && response.data;
       if (Array.isArray(data)) setProducts(data);
       else if (data && Array.isArray(data.data)) setProducts(data.data);
@@ -158,8 +159,8 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, suppliers, onDataC
   const handleDeleteProduct = async (id) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
-      //await axios.delete(`http://localhost/pos-system/server/api/products.php?id=${id}`);
-      await axios.delete(`/sbr-pos/server/api/products.php?id=${id}`);
+      //await axios.delete(`${API_BASE_URL}/server/api/products.php?id=${id}`);
+      await axios.delete(`${API_BASE_URL}/server/api/products.php?id=${id}`);
       fetchProducts();
       setSelectedProducts(prev => prev.filter(x => x !== id));
     } catch (err) {
@@ -236,8 +237,8 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, suppliers, onDataC
         } else if (bulkEdits.stockMode === 'delta') {
           updateObj.stock_delta = Number(bulkEdits.stockDelta) || 0;
         }
-        //await axios.put(`http://localhost/pos-system/server/api/products.php?id=${id}`, updateObj, {
-        await axios.put(`/sbr-pos/server/api/products.php?id=${id}`, updateObj, {
+        //await axios.put(`${API_BASE_URL}/server/api/products.php?id=${id}`, updateObj, {
+        await axios.put(`${API_BASE_URL}/server/api/products.php?id=${id}`, updateObj, {
           headers: { 'Content-Type': 'application/json' }
         });
       } catch (err) {
@@ -257,7 +258,7 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, suppliers, onDataC
   if (error) return <div className="text-center p-4 text-red-600">{error}</div>;
 
   return (
-    <div className="p-4 md:p-8 bg-gray-100 min-h-screen">
+    <div className="w-full">
       <div className="bg-white rounded-lg shadow-md p-4 md:p-6">
         
         {/* Mobile: Stacked Action Buttons */}
@@ -433,12 +434,11 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, suppliers, onDataC
       )}
 
       {showBarcodeModal && (
-        <Modal onClose={() => setShowBarcodeModal(false)}>
-          <BarcodeModal
-            barcodes={barcodesToPrint.map(p => ({ sku: p.sku, name: p.name }))}
-            onClose={() => setShowBarcodeModal(false)}
-          />
-        </Modal>
+        <BarcodeModal
+          barcodes={barcodesToPrint.map(p => ({ sku: p.sku, name: p.name }))}
+          onClose={() => setShowBarcodeModal(false)}
+          mode="print"
+        />
       )}
 
       {showBulkImportModal && (

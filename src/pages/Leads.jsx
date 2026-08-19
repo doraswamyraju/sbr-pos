@@ -1,4 +1,5 @@
 // src/pages/Leads.jsx
+import { API_BASE_URL } from '../config';
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import LeadsTable from "../components/LeadsTable";
@@ -38,17 +39,18 @@ export default function Leads() {
     setError("");
     try {
       const [leadsRes, usersRes, productsRes] = await Promise.all([
-        axios.get("/sbr-pos/server/api/leads.php"),
-        axios.get("/sbr-pos/server/api/users.php"),
-        axios.get("/sbr-pos/server/api/products.php"),
+        axios.get(`${API_BASE_URL}/server/api/leads.php`),
+        axios.get(`${API_BASE_URL}/server/api/users.php`),
+        axios.get(`${API_BASE_URL}/server/api/products.php`),
       ]);
 
       const leadsData = leadsRes.data?.data ?? leadsRes.data ?? [];
       setLeads(Array.isArray(leadsData) ? leadsData : []);
 
       const usersData = usersRes.data?.data ?? usersRes.data ?? [];
-      setUsers(usersData);
-      setAssignableUsers((usersData || []).filter((u) => ["sales", "admin", "store_incharge"].includes((u.role || "").toString().toLowerCase())));
+      const usersArray = Array.isArray(usersData) ? usersData : [];
+      setUsers(usersArray);
+      setAssignableUsers(usersArray.filter((u) => ["sales", "admin", "store_incharge"].includes((u.role || "").toString().toLowerCase())));
 
       const productsData = productsRes.data?.data ?? productsRes.data ?? [];
       setProducts(Array.isArray(productsData) ? productsData : []);
@@ -86,7 +88,7 @@ export default function Leads() {
   const handleAssign = async (leadId, userId) => {
     try {
       setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, assigned_to: userId } : l)));
-      await axios.put(`/sbr-pos/server/api/leads.php?id=${leadId}`, { assigned_to: userId });
+      await axios.put(`${API_BASE_URL}/server/api/leads.php?id=${leadId}`, { assigned_to: userId });
     } catch (err) {
       console.error("assign failed", err);
     }
@@ -105,7 +107,7 @@ export default function Leads() {
   const handleDeleteLead = async (leadId) => {
     if (!window.confirm("Delete this lead?")) return;
     try {
-      await axios.delete(`/sbr-pos/server/api/leads.php?id=${leadId}`);
+      await axios.delete(`${API_BASE_URL}/server/api/leads.php?id=${leadId}`);
       setLeads((prev) => prev.filter((l) => l.id !== leadId));
     } catch (err) {
       console.error("delete failed", err);
@@ -124,6 +126,11 @@ export default function Leads() {
     }
     // optionally you can remove converted lead:
     // setLeads(prev => prev.filter(l => l.id !== leadToConvert.id));
+  };
+
+  const openScheduleModal = (lead) => {
+    setSelectedLead(lead);
+    setShowCalendarModal(true);
   };
 
   if (loading) {
@@ -181,6 +188,7 @@ export default function Leads() {
           handleAssign={handleAssign}
           handleDeleteLead={handleDeleteLead}
           onOpenConvertModal={openConvertModal}
+          onOpenSchedule={openScheduleModal}
         />
 
         <LeadCard
@@ -190,6 +198,7 @@ export default function Leads() {
           handleDeleteLead={handleDeleteLead}
           setShowCalendarModal={setShowCalendarModal}
           onOpenConvertModal={openConvertModal}
+          onOpenSchedule={openScheduleModal}
         />
       </div>
 
@@ -211,7 +220,7 @@ export default function Leads() {
         onClose={() => setShowConvertModal(false)}
         lead={leadToConvert}
         products={products}
-        apiConvertUrl="/sbr-pos/server/api/convert_lead.php"
+        apiConvertUrl={`${API_BASE_URL}/server/api/convert_lead.php`}
         onConverted={(res) => {
           handleConverted(res);
           setShowConvertModal(false);

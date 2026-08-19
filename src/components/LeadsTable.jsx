@@ -12,6 +12,7 @@ export default function LeadsTable({
   handleAssign,
   handleDeleteLead,
   onOpenConvertModal,
+  onOpenSchedule,
 }) {
   return (
     <div className="hidden md:block bg-white rounded-lg shadow-sm border p-4 w-full">
@@ -62,7 +63,7 @@ export default function LeadsTable({
                     <button onClick={() => openEditLead(lead)} title="Edit">
                       <FaEdit />
                     </button>
-                    <button onClick={() => window.alert("Schedule not implemented")} title="Schedule">
+                    <button onClick={() => onOpenSchedule ? onOpenSchedule(lead) : null} title="Schedule Follow-up" className="text-blue-600 hover:text-blue-800">
                       <FaCalendarAlt />
                     </button>
                     <button onClick={() => onOpenConvertModal(lead)} title="Open convert modal">

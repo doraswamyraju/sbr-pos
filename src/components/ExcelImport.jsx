@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/components/ExcelImport.jsx
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
@@ -18,7 +19,7 @@ const ExcelImport = ({
 
   // API base: use env var or default to your php server path
   const API_BASE = (process.env.REACT_APP_API_BASE && process.env.REACT_APP_API_BASE.replace(/\/$/, '')) 
-                    || '/sbr-pos/server/api';
+                    || API_BASE_URL + "/server/api";
   const TARGET_JSON_ENDPOINT = `${API_BASE}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
   const TARGET_FILE_ENDPOINT = TARGET_JSON_ENDPOINT; // same endpoint supports file/multipart
 

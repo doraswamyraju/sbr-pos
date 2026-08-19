@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../config';
 // src/components/LeadsModals.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
@@ -56,14 +57,14 @@ export default function LeadsModals({
     setSaving(true);
     try {
       if (selectedLead && selectedLead.id) {
-        const res = await axios.put(`/sbr-pos/server/api/leads.php?id=${selectedLead.id}`, form);
+        const res = await axios.put(`${API_BASE_URL}/server/api/leads.php?id=${selectedLead.id}`, form);
         if (res.data?.status === "success") {
           onSave({ id: selectedLead.id, ...form });
         } else {
           onSave({ id: selectedLead.id, ...form });
         }
       } else {
-        const res = await axios.post(`/sbr-pos/server/api/leads.php`, form);
+        const res = await axios.post(`${API_BASE_URL}/server/api/leads.php`, form);
         if (res.data?.status === "success") {
           onSave(res.data.data);
         }
@@ -144,12 +145,87 @@ export default function LeadsModals({
 
       {showCalendarModal && (
         <div className="fixed inset-0 z-40 bg-black bg-opacity-40 flex items-center justify-center p-4">
-          <div className="bg-white p-6 rounded shadow-lg w-full max-w-md">
-            <h2 className="text-lg font-bold mb-3">Schedule / Calendar</h2>
-            <p className="text-sm text-gray-600">(Place your calendar component here)</p>
-            <div className="mt-4 flex justify-end">
-              <button className="px-3 py-1 border rounded" onClick={() => setShowCalendarModal(false)}>
-                Close
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h2 className="text-xl font-bold mb-1">Schedule Lead Follow-Up</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              {selectedLead ? `Scheduling for ${selectedLead.full_name || 'Lead #' + selectedLead.id}` : 'Select a date and time for follow-up.'}
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Follow-up Date & Time</label>
+                <input
+                  type="datetime-local"
+                  className="w-full border rounded-lg p-2 text-gray-900"
+                  defaultValue={selectedLead?.followup_date || new Date().toISOString().slice(0, 16)}
+                  id="schedule-datetime-input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Assigned Sales Representative</label>
+                <select
+                  className="w-full border rounded-lg p-2 text-gray-900"
+                  defaultValue={selectedLead?.assigned_to || ''}
+                  id="schedule-assigned-user"
+                >
+                  <option value="">Unassigned</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Follow-Up Notes / Reminders</label>
+                <textarea
+                  className="w-full border rounded-lg p-2 text-gray-900"
+                  rows={3}
+                  placeholder="E.g., Call customer regarding quotation and demo..."
+                  defaultValue={selectedLead?.notes || ''}
+                  id="schedule-notes-input"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+                onClick={() => setShowCalendarModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+                onClick={async () => {
+                  const dateVal = document.getElementById('schedule-datetime-input')?.value;
+                  const userVal = document.getElementById('schedule-assigned-user')?.value;
+                  const notesVal = document.getElementById('schedule-notes-input')?.value;
+                  if (selectedLead && selectedLead.id) {
+                    try {
+                      await axios.put(`${API_BASE_URL}/server/api/leads.php?id=${selectedLead.id}`, {
+                        assigned_to: userVal,
+                        notes: notesVal ? `${notesVal} (Scheduled: ${dateVal})` : `Scheduled follow-up on ${dateVal}`,
+                        status: selectedLead.status === 'New' ? 'Contacted' : selectedLead.status
+                      });
+                      onSave({
+                        id: selectedLead.id,
+                        assigned_to: userVal,
+                        notes: notesVal ? `${notesVal} (Scheduled: ${dateVal})` : `Scheduled follow-up on ${dateVal}`,
+                        status: selectedLead.status === 'New' ? 'Contacted' : selectedLead.status
+                      });
+                      alert('Lead follow-up scheduled successfully!');
+                    } catch (err) {
+                      console.error('Schedule error:', err);
+                      alert('Failed to save schedule.');
+                    }
+                  }
+                  setShowCalendarModal(false);
+                }}
+              >
+                Save Schedule
               </button>
             </div>
           </div>
