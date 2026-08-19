@@ -444,7 +444,11 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, suppliers, onDataC
       {showBulkImportModal && (
         <Modal onClose={() => setShowBulkImportModal(false)}>
           <ExcelImport
-            onImportComplete={onDataChange}
+            type="products"
+            title="Import Products / Inventory (Excel / CSV)"
+            onImportComplete={() => {
+              if (onDataChange) onDataChange();
+            }}
           />
         </Modal>
       )}
