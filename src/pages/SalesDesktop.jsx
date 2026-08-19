@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { FaArrowLeft, FaCamera, FaSearch, FaPlus, FaTrash, FaPause, FaHistory, FaCheckCircle, FaUserPlus, FaTh, FaList, FaTimes } from "react-icons/fa";
 import Modal from "../components/common/Modal";
+import logoImg from "../assets/logo.png";
 
 /**
  * SalesDesktop - Modern, ultra-useful POS terminal desktop layout
@@ -76,9 +77,12 @@ const SalesDesktop = (props) => {
             <FaArrowLeft className="mr-2 text-xs text-slate-400" /> Back to Dashboard
           </button>
           <div className="h-5 w-px bg-slate-700" />
-          <h1 className="text-xl font-black tracking-wide bg-gradient-to-r from-blue-400 via-indigo-300 to-sky-400 bg-clip-text text-transparent">
-            Sri Balaji Renewables POS
-          </h1>
+          <div className="flex items-center space-x-2">
+            <img src={logoImg} alt="Logo" className="h-7 w-auto object-contain bg-slate-900/50 p-1 rounded" />
+            <h1 className="text-xl font-black tracking-wide bg-gradient-to-r from-blue-400 via-indigo-300 to-sky-400 bg-clip-text text-transparent">
+              Sri Balaji Renewables POS
+            </h1>
+          </div>
         </div>
 
         {/* Category Pills Bar */}

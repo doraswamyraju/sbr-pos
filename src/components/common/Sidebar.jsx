@@ -3,9 +3,10 @@ import React from 'react';
 import {
   FaBoxes, FaChartBar, FaUserTie, FaUsers,
   FaShoppingCart, FaSignOutAlt, FaBullhorn,
-  FaFileInvoiceDollar, FaCog, FaTruck, FaTasks, FaBuilding // FaBuilding is new
+  FaFileInvoiceDollar, FaCog, FaTruck
 } from 'react-icons/fa';
 import { NavLink } from 'react-router-dom';
+import logoImg from '../../assets/logo.png';
 
 const Sidebar = ({ onLogout, userRole, expanded = false, setExpanded = () => {} }) => {
   const activeLinkStyle = "bg-secondary-gold text-primary-blue";
@@ -23,11 +24,11 @@ const Sidebar = ({ onLogout, userRole, expanded = false, setExpanded = () => {} 
       <div className="mb-8 flex items-center justify-between">
         {expanded ? (
           <div className="flex items-center space-x-2">
-            <img src="/logo.png" alt="Logo" className="h-9 w-auto bg-white rounded p-1 object-contain" />
+            <img src={logoImg} alt="Logo" className="h-9 w-auto bg-white rounded p-1 object-contain" />
             <h1 className="text-sm font-bold text-secondary-gold leading-tight">Sri Balaji Renewables POS</h1>
           </div>
         ) : (
-          <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain bg-white p-1 rounded-md" />
+          <img src={logoImg} alt="Logo" className="w-10 h-10 object-contain bg-white p-1 rounded-md" />
         )}
       </div>
 
@@ -39,13 +40,6 @@ const Sidebar = ({ onLogout, userRole, expanded = false, setExpanded = () => {} 
               {expanded && 'Inventory'}
             </NavLink>
           </li>
-          
-          {/* <li className="mb-2">
-            <NavLink to="/projects" className={({ isActive }) => isActive ? `${baseLinkStyle} ${activeLinkStyle}` : `${baseLinkStyle} ${defaultLinkStyle}`}>
-              <FaBuilding className="mr-3" />
-              {expanded && 'Projects'}
-            </NavLink>
-          </li> */}
           
           <li className="mb-2">
             <NavLink to="/sales" className={({ isActive }) => isActive ? `${baseLinkStyle} ${activeLinkStyle}` : `${baseLinkStyle} ${defaultLinkStyle}`}>
