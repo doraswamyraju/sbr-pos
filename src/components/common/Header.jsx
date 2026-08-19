@@ -11,10 +11,8 @@ const Header = ({ user = {}, onLogout = () => {}, sidebarExpanded = false, compa
       role="banner"
     >
       <div className="max-w-full mx-auto px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          {company.logoUrl && (
-            <img src={company.logoUrl} alt="Company Logo" className="h-10 w-auto" onError={(e) => { e.target.style.display = 'none'; }} />
-          )}
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="SBR POS Logo" className="h-9 w-auto object-contain" />
           <div className="text-lg font-semibold text-gray-800">Sri Balaji Renewables POS</div>
         </div>
 

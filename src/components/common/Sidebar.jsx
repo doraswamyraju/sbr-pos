@@ -22,9 +22,12 @@ const Sidebar = ({ onLogout, userRole, expanded = false, setExpanded = () => {} 
     >
       <div className="mb-8 flex items-center justify-between">
         {expanded ? (
-          <h1 className="text-lg font-bold text-secondary-gold leading-tight">Sri Balaji Renewables POS</h1>
+          <div className="flex items-center space-x-2">
+            <img src="/logo.png" alt="Logo" className="h-9 w-auto bg-white rounded p-1 object-contain" />
+            <h1 className="text-sm font-bold text-secondary-gold leading-tight">Sri Balaji Renewables POS</h1>
+          </div>
         ) : (
-          <div className="w-10 h-10 bg-yellow-400 rounded-md flex items-center justify-center text-primary-blue font-bold">S</div>
+          <img src="/logo.png" alt="Logo" className="w-10 h-10 object-contain bg-white p-1 rounded-md" />
         )}
       </div>
 
