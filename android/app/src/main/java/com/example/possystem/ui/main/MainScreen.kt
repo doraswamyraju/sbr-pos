@@ -137,6 +137,7 @@ fun MainScreen(
                     showQuantityInput = false
                     scannedProductPending = null
                     currentTab = NavTab.POS
+                    triggerScanner()
                 },
                 onDismiss = {
                     showQuantityInput = false
