@@ -60,6 +60,7 @@ fun MainScreen(
                 when (currentTab) {
                     NavTab.POS -> PosScreen(posViewModel = posViewModel)
                     NavTab.INVENTORY -> InventoryScreen(inventoryViewModel = inventoryViewModel)
+                    NavTab.SCANNER -> { /* Action tab, handled on click */ }
                     NavTab.LEADS -> LeadsScreen(leadsViewModel = leadsViewModel, customersViewModel = customersViewModel)
                     NavTab.PROJECTS -> ProjectsScreen(projectsViewModel = projectsViewModel)
                     NavTab.MORE -> MoreScreen(
