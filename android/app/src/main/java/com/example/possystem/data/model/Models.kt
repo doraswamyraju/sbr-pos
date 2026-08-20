@@ -35,10 +35,12 @@ data class CartItem(
 
 data class Customer(
     val id: String = "",
-    val name: String = "",
-    val phone: String? = null,
+    @SerializedName("full_name") val name: String = "",
+    @SerializedName("phone_number") val phone: String? = null,
     val email: String? = null,
     val address: String? = null,
+    @SerializedName("is_gst_registered") val isGstRegistered: Int = 0,
+    val gstin: String? = null,
     @SerializedName("total_purchases") val totalPurchases: Double = 0.0,
     val balance: Double = 0.0
 )

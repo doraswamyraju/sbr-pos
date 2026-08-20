@@ -54,13 +54,15 @@ class CustomersViewModel : ViewModel() {
         _showAddCustomerSheet.value = show
     }
 
-    fun addCustomer(name: String, phone: String, email: String, address: String) {
+    fun addCustomer(name: String, phone: String, email: String, address: String, isGstRegistered: Int = 0, gstin: String? = null) {
         val newCustomer = Customer(
             id = "CUST-${System.currentTimeMillis() % 10000}",
             name = name,
             phone = phone,
             email = email,
-            address = address
+            address = address,
+            isGstRegistered = isGstRegistered,
+            gstin = gstin
         )
 
         _customers.value = listOf(newCustomer) + _customers.value

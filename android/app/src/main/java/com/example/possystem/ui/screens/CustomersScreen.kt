@@ -86,7 +86,7 @@ fun CustomersScreen(
 
     if (showAddCustomerSheet) {
         AddCustomerBottomSheet(
-            onSave = { n, p, e, a -> customersViewModel.addCustomer(n, p, e, a) },
+            onSave = { n, p, e, a, g, gstin -> customersViewModel.addCustomer(n, p, e, a, g, gstin) },
             onDismiss = { customersViewModel.setShowAddCustomerSheet(false) }
         )
     }
@@ -125,6 +125,32 @@ fun CustomerCardItem(customer: Customer) {
                 Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(text = customer.phone ?: "No phone", fontSize = 13.sp, color = Color.DarkGray)
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "GST Registered: ",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Gray
+                )
+                Text(
+                    text = if (customer.isGstRegistered == 1) "Yes" else "No",
+                    fontSize = 12.sp,
+                    color = if (customer.isGstRegistered == 1) Color(0xFF10B981) else Color(0xFFEF4444),
+                    fontWeight = FontWeight.Bold
+                )
+                if (customer.isGstRegistered == 1 && !customer.gstin.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "GSTIN: ${customer.gstin}",
+                        fontSize = 12.sp,
+                        color = Color.DarkGray,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
 
             if (!customer.email.isNullOrBlank()) {

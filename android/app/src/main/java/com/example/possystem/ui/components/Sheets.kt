@@ -626,13 +626,15 @@ fun AddTaskBottomSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddCustomerBottomSheet(
-    onSave: (name: String, phone: String, email: String, address: String) -> Unit,
+    onSave: (name: String, phone: String, email: String, address: String, isGst: Int, gstin: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
+    var isGstRegistered by remember { mutableStateOf(false) }
+    var gstin by remember { mutableStateOf("") }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -683,12 +685,37 @@ fun AddCustomerBottomSheet(
                 maxLines = 2
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Checkbox(
+                    checked = isGstRegistered,
+                    onCheckedChange = { isGstRegistered = it }
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("GST-Registered Customer", fontSize = 14.sp)
+            }
+
+            if (isGstRegistered) {
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = gstin,
+                    onValueChange = { gstin = it },
+                    label = { Text("GST Number") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onSave(name, phone, email, address)
+                        onSave(name, phone, email, address, if (isGstRegistered) 1 else 0, if (isGstRegistered) gstin else null)
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(48.dp)

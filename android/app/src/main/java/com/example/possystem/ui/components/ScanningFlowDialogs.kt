@@ -28,13 +28,15 @@ import com.example.possystem.data.model.Customer
 fun CustomerSelectionDialog(
     customers: List<Customer>,
     onCustomerSelected: (Customer?) -> Unit,
-    onAddNewCustomer: (name: String, phone: String) -> Unit,
+    onAddNewCustomer: (name: String, phone: String, isGst: Int, gstin: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var isAddingNew by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }
     var newPhone by remember { mutableStateOf("") }
+    var isGstRegistered by remember { mutableStateOf(false) }
+    var gstin by remember { mutableStateOf("") }
 
     val primaryBlue = Color(0xFF3377D0)
     val textDark = Color(0xFF1F2937)
@@ -101,6 +103,30 @@ fun CustomerSelectionDialog(
                         singleLine = true,
                         colors = textFieldColors
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = isGstRegistered,
+                            onCheckedChange = { isGstRegistered = it },
+                            colors = CheckboxDefaults.colors(checkedColor = primaryBlue)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("GST-Registered Customer", fontSize = 14.sp, color = textDark)
+                    }
+                    if (isGstRegistered) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = gstin,
+                            onValueChange = { gstin = it },
+                            label = { Text("GST Number") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = textFieldColors
+                        )
+                    }
                     Spacer(modifier = Modifier.height(20.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -113,10 +139,16 @@ fun CustomerSelectionDialog(
                         Button(
                             onClick = {
                                 if (newName.isNotBlank()) {
-                                    onAddNewCustomer(newName, newPhone)
+                                    onAddNewCustomer(
+                                        newName,
+                                        newPhone,
+                                        if (isGstRegistered) 1 else 0,
+                                        if (isGstRegistered) gstin else null
+                                    )
                                 }
                             },
-                            enabled = newName.isNotBlank()
+                            enabled = newName.isNotBlank(),
+                            colors = ButtonDefaults.buttonColors(containerColor = primaryBlue)
                         ) {
                             Text("Add & Select")
                         }

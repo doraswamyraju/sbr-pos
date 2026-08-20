@@ -101,14 +101,16 @@ fun MainScreen(
                         }
                     }
                 },
-                onAddNewCustomer = { name, phone ->
-                    customersViewModel.addCustomer(name, phone, "", "")
+                onAddNewCustomer = { name, phone, isGst, gstin ->
+                    customersViewModel.addCustomer(name, phone, "", "", isGst, gstin)
                     val newCustomer = Customer(
                         id = "CUST-${System.currentTimeMillis() % 10000}",
                         name = name,
                         phone = phone,
                         email = "",
-                        address = ""
+                        address = "",
+                        isGstRegistered = isGst,
+                        gstin = gstin
                     )
                     posViewModel.selectCustomer(newCustomer)
                     showCustomerSelect = false
