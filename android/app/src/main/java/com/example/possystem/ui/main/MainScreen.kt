@@ -35,6 +35,7 @@ fun MainScreen(
     val currentUser by authViewModel.currentUser.collectAsState()
     var currentTab by remember { mutableStateOf(NavTab.POS) }
     val cart by posViewModel.cart.collectAsState()
+    val selectedCustomer by posViewModel.selectedCustomer.collectAsState()
 
     var showCustomerSelect by remember { mutableStateOf(false) }
     var scannedProductPending by remember { mutableStateOf<Product?>(null) }
@@ -42,6 +43,20 @@ fun MainScreen(
 
     val customers by customersViewModel.customers.collectAsState()
     val products by posViewModel.products.collectAsState()
+
+    val triggerScanner = {
+        MainActivity.startBarcodeScan { barcode ->
+            val cleanBarcode = barcode.trim()
+            val match = products.find { 
+                it.sku?.trim()?.equals(cleanBarcode, ignoreCase = true) == true || 
+                it.id.trim().equals(cleanBarcode, ignoreCase = true) 
+            }
+            if (match != null) {
+                scannedProductPending = match
+                showQuantityInput = true
+            }
+        }
+    }
 
     if (currentUser == null) {
         LoginScreen(authViewModel = authViewModel)
@@ -52,7 +67,11 @@ fun MainScreen(
                     currentTab = currentTab,
                     onTabSelected = { tab ->
                         if (tab == NavTab.SCANNER) {
-                            showCustomerSelect = true
+                            if (selectedCustomer != null) {
+                                triggerScanner()
+                            } else {
+                                showCustomerSelect = true
+                            }
                         } else {
                             currentTab = tab
                         }
@@ -89,17 +108,7 @@ fun MainScreen(
                 onCustomerSelected = { customer ->
                     posViewModel.selectCustomer(customer)
                     showCustomerSelect = false
-                    MainActivity.startBarcodeScan { barcode ->
-                        val cleanBarcode = barcode.trim()
-                        val match = products.find { 
-                            it.sku?.trim()?.equals(cleanBarcode, ignoreCase = true) == true || 
-                            it.id.trim().equals(cleanBarcode, ignoreCase = true) 
-                        }
-                        if (match != null) {
-                            scannedProductPending = match
-                            showQuantityInput = true
-                        }
-                    }
+                    triggerScanner()
                 },
                 onAddNewCustomer = { name, phone, email, address, isGst, gstin ->
                     customersViewModel.addCustomer(name, phone, email, address, isGst, gstin)
@@ -114,17 +123,7 @@ fun MainScreen(
                     )
                     posViewModel.selectCustomer(newCustomer)
                     showCustomerSelect = false
-                    MainActivity.startBarcodeScan { barcode ->
-                        val cleanBarcode = barcode.trim()
-                        val match = products.find { 
-                            it.sku?.trim()?.equals(cleanBarcode, ignoreCase = true) == true || 
-                            it.id.trim().equals(cleanBarcode, ignoreCase = true) 
-                        }
-                        if (match != null) {
-                            scannedProductPending = match
-                            showQuantityInput = true
-                        }
-                    }
+                    triggerScanner()
                 },
                 onDismiss = { showCustomerSelect = false }
             )
