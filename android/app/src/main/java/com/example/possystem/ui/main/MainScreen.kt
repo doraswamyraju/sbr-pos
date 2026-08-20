@@ -11,6 +11,7 @@ import com.example.possystem.ui.components.BottomNavBar
 import com.example.possystem.ui.components.NavTab
 import com.example.possystem.ui.screens.*
 import com.example.possystem.ui.viewmodel.*
+import com.example.possystem.MainActivity
 
 @Composable
 fun MainScreen(
@@ -38,7 +39,15 @@ fun MainScreen(
             bottomBar = {
                 BottomNavBar(
                     currentTab = currentTab,
-                    onTabSelected = { tab -> currentTab = tab },
+                    onTabSelected = { tab ->
+                        if (tab == NavTab.SCANNER) {
+                            MainActivity.startBarcodeScan { barcode ->
+                                posViewModel.onBarcodeScanned(barcode)
+                            }
+                        } else {
+                            currentTab = tab
+                        }
+                    },
                     cartItemCount = cart.sumOf { it.quantity }
                 )
             }
