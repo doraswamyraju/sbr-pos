@@ -36,6 +36,20 @@ fun CustomerSelectionDialog(
     var newName by remember { mutableStateOf("") }
     var newPhone by remember { mutableStateOf("") }
 
+    val primaryBlue = Color(0xFF3377D0)
+    val textDark = Color(0xFF1F2937)
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = textDark,
+        unfocusedTextColor = textDark,
+        focusedBorderColor = primaryBlue,
+        unfocusedBorderColor = Color.LightGray,
+        cursorColor = primaryBlue,
+        focusedLabelColor = primaryBlue,
+        unfocusedLabelColor = Color.Gray,
+        focusedPlaceholderColor = Color.Gray,
+        unfocusedPlaceholderColor = Color.Gray
+    )
+
     val filteredCustomers = remember(searchQuery, customers) {
         if (searchQuery.isBlank()) {
             customers
@@ -71,19 +85,21 @@ fun CustomerSelectionDialog(
                         value = newName,
                         onValueChange = { newName = it },
                         label = { Text("Customer Name") },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = textFieldColors
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = newPhone,
                         onValueChange = { newPhone = it },
                         label = { Text("Phone Number") },
-                        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null) },
+                        leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = Color.Gray) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        colors = textFieldColors
                     )
                     Spacer(modifier = Modifier.height(20.dp))
                     Row(
@@ -110,11 +126,12 @@ fun CustomerSelectionDialog(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search by name or phone...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        placeholder = { Text("Search by name or phone...", color = Color.Gray) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        colors = textFieldColors
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -168,9 +185,9 @@ fun CustomerSelectionDialog(
                                     )
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
-                                        Text(customer.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text(customer.name, color = Color(0xFF1F2937), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                         if (!customer.phone.isNullOrBlank()) {
-                                            Text(customer.phone, fontSize = 12.sp, color = Color.Gray)
+                                            Text(customer.phone, color = Color(0xFF4B5563), fontSize = 12.sp)
                                         }
                                     }
                                 }
@@ -202,6 +219,16 @@ fun QuantityInputDialog(
 ) {
     var quantityText by remember { mutableStateOf("1") }
     val quantity = quantityText.toIntOrNull() ?: 1
+
+    val primaryBlue = Color(0xFF3377D0)
+    val textDark = Color(0xFF1F2937)
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = textDark,
+        unfocusedTextColor = textDark,
+        focusedBorderColor = primaryBlue,
+        unfocusedBorderColor = Color.LightGray,
+        cursorColor = primaryBlue
+    )
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -241,7 +268,11 @@ fun QuantityInputDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.width(120.dp),
                     singleLine = true,
-                    textStyle = LocalTextStyle.current.copy(textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    textStyle = LocalTextStyle.current.copy(
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        color = textDark
+                    ),
+                    colors = textFieldColors
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
