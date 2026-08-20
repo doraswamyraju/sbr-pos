@@ -21,12 +21,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.possystem.data.model.Sale
+import android.content.Intent
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 @Composable
 fun InvoiceDialog(
     sale: Sale,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    var showPrintDialog by remember { mutableStateOf(false) }
+
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(20.dp),
@@ -176,21 +186,115 @@ fun InvoiceDialog(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(
-                        onClick = { /* Print receipt simulation */ },
+                        onClick = { showPrintDialog = true },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Print")
+                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Print", fontSize = 12.sp)
+                    }
+                    OutlinedButton(
+                        onClick = {
+                            val shareText = buildString {
+                                appendLine("=== SRI BALAJI RENEWABLES POS ===")
+                                appendLine("Invoice: ${sale.invoiceNo}")
+                                appendLine("Date: ${sale.date}")
+                                appendLine("Customer: ${sale.customerName}")
+                                appendLine("--------------------------------")
+                                sale.items.forEach { item ->
+                                    appendLine("${item.productName} x ${item.quantity} - ₹${String.format("%.2f", item.total)}")
+                                }
+                                appendLine("--------------------------------")
+                                appendLine("Subtotal: ₹${String.format("%.2f", sale.totalAmount)}")
+                                if (sale.discount > 0) {
+                                    appendLine("Discount: -₹${String.format("%.2f", sale.discount)}")
+                                }
+                                appendLine("TOTAL: ₹${String.format("%.2f", sale.finalAmount)}")
+                                appendLine("Payment: ${sale.paymentMethod}")
+                                appendLine("================================")
+                                appendLine("Thank you for your business!")
+                            }
+                            val sendIntent = Intent().apply {
+                                action = Intent.ACTION_SEND
+                                putExtra(Intent.EXTRA_TEXT, shareText)
+                                type = "text/plain"
+                            }
+                            val shareIntent = Intent.createChooser(sendIntent, "Share Invoice")
+                            context.startActivity(shareIntent)
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Share", fontSize = 12.sp)
                     }
                     Button(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Done")
+                        Text("Done", fontSize = 12.sp)
+                    }
+                }
+            }
+        }
+    }
+
+    if (showPrintDialog) {
+        Dialog(onDismissRequest = { showPrintDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Select Print Format",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Button(
+                        onClick = {
+                            Toast.makeText(context, "Printing A4 Invoice...", Toast.LENGTH_SHORT).show()
+                            showPrintDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("A4 Format")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            Toast.makeText(context, "Printing 2-inch Thermal Receipt...", Toast.LENGTH_SHORT).show()
+                            showPrintDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("2\" Thermal Receipt")
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            Toast.makeText(context, "Printing 3-inch Thermal Receipt...", Toast.LENGTH_SHORT).show()
+                            showPrintDialog = false
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("3\" Thermal Receipt")
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TextButton(onClick = { showPrintDialog = false }) {
+                        Text("Cancel")
                     }
                 }
             }

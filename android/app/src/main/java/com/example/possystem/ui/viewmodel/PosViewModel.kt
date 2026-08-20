@@ -103,14 +103,14 @@ class PosViewModel : ViewModel() {
         }
     }
 
-    fun addToCart(product: Product) {
+    fun addToCart(product: Product, quantity: Int = 1) {
         val currentCart = _cart.value.toMutableList()
         val index = currentCart.indexOfFirst { it.product.id == product.id }
         if (index >= 0) {
             val existing = currentCart[index]
-            currentCart[index] = existing.copy(quantity = existing.quantity + 1)
+            currentCart[index] = existing.copy(quantity = existing.quantity + quantity)
         } else {
-            currentCart.add(CartItem(product = product, quantity = 1))
+            currentCart.add(CartItem(product = product, quantity = quantity))
         }
         _cart.value = currentCart
     }

@@ -9,6 +9,10 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.possystem.ui.components.BottomNavBar
 import com.example.possystem.ui.components.NavTab
+import com.example.possystem.ui.components.CustomerSelectionDialog
+import com.example.possystem.ui.components.QuantityInputDialog
+import com.example.possystem.data.model.Customer
+import com.example.possystem.data.model.Product
 import com.example.possystem.ui.screens.*
 import com.example.possystem.ui.viewmodel.*
 import com.example.possystem.MainActivity
@@ -32,6 +36,13 @@ fun MainScreen(
     var currentTab by remember { mutableStateOf(NavTab.POS) }
     val cart by posViewModel.cart.collectAsState()
 
+    var showCustomerSelect by remember { mutableStateOf(false) }
+    var scannedProductPending by remember { mutableStateOf<Product?>(null) }
+    var showQuantityInput by remember { mutableStateOf(false) }
+
+    val customers by customersViewModel.customers.collectAsState()
+    val products by posViewModel.products.collectAsState()
+
     if (currentUser == null) {
         LoginScreen(authViewModel = authViewModel)
     } else {
@@ -41,9 +52,7 @@ fun MainScreen(
                     currentTab = currentTab,
                     onTabSelected = { tab ->
                         if (tab == NavTab.SCANNER) {
-                            MainActivity.startBarcodeScan { barcode ->
-                                posViewModel.onBarcodeScanned(barcode)
-                            }
+                            showCustomerSelect = true
                         } else {
                             currentTab = tab
                         }
@@ -72,6 +81,67 @@ fun MainScreen(
                     )
                 }
             }
+        }
+
+        if (showCustomerSelect) {
+            CustomerSelectionDialog(
+                customers = customers,
+                onCustomerSelected = { customer ->
+                    posViewModel.selectCustomer(customer)
+                    showCustomerSelect = false
+                    MainActivity.startBarcodeScan { barcode ->
+                        val cleanBarcode = barcode.trim()
+                        val match = products.find { 
+                            it.sku?.trim()?.equals(cleanBarcode, ignoreCase = true) == true || 
+                            it.id.trim().equals(cleanBarcode, ignoreCase = true) 
+                        }
+                        if (match != null) {
+                            scannedProductPending = match
+                            showQuantityInput = true
+                        }
+                    }
+                },
+                onAddNewCustomer = { name, phone ->
+                    customersViewModel.addCustomer(name, phone, "", "")
+                    val newCustomer = Customer(
+                        id = "CUST-${System.currentTimeMillis() % 10000}",
+                        name = name,
+                        phone = phone,
+                        email = "",
+                        address = ""
+                    )
+                    posViewModel.selectCustomer(newCustomer)
+                    showCustomerSelect = false
+                    MainActivity.startBarcodeScan { barcode ->
+                        val cleanBarcode = barcode.trim()
+                        val match = products.find { 
+                            it.sku?.trim()?.equals(cleanBarcode, ignoreCase = true) == true || 
+                            it.id.trim().equals(cleanBarcode, ignoreCase = true) 
+                        }
+                        if (match != null) {
+                            scannedProductPending = match
+                            showQuantityInput = true
+                        }
+                    }
+                },
+                onDismiss = { showCustomerSelect = false }
+            )
+        }
+
+        if (showQuantityInput && scannedProductPending != null) {
+            QuantityInputDialog(
+                productName = scannedProductPending!!.name,
+                onConfirm = { quantity ->
+                    posViewModel.addToCart(scannedProductPending!!, quantity)
+                    showQuantityInput = false
+                    scannedProductPending = null
+                    currentTab = NavTab.POS
+                },
+                onDismiss = {
+                    showQuantityInput = false
+                    scannedProductPending = null
+                }
+            )
         }
     }
 }
