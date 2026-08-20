@@ -101,14 +101,14 @@ fun MainScreen(
                         }
                     }
                 },
-                onAddNewCustomer = { name, phone, isGst, gstin ->
-                    customersViewModel.addCustomer(name, phone, "", "", isGst, gstin)
+                onAddNewCustomer = { name, phone, email, address, isGst, gstin ->
+                    customersViewModel.addCustomer(name, phone, email, address, isGst, gstin)
                     val newCustomer = Customer(
                         id = "CUST-${System.currentTimeMillis() % 10000}",
                         name = name,
                         phone = phone,
-                        email = "",
-                        address = "",
+                        email = email,
+                        address = address,
                         isGstRegistered = isGst,
                         gstin = gstin
                     )

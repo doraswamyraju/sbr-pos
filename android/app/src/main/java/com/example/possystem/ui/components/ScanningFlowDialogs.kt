@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,13 +30,15 @@ import com.example.possystem.data.model.Customer
 fun CustomerSelectionDialog(
     customers: List<Customer>,
     onCustomerSelected: (Customer?) -> Unit,
-    onAddNewCustomer: (name: String, phone: String, isGst: Int, gstin: String?) -> Unit,
+    onAddNewCustomer: (name: String, phone: String, email: String, address: String, isGst: Int, gstin: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var isAddingNew by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf("") }
     var newPhone by remember { mutableStateOf("") }
+    var newEmail by remember { mutableStateOf("") }
+    var newAddress by remember { mutableStateOf("") }
     var isGstRegistered by remember { mutableStateOf(false) }
     var gstin by remember { mutableStateOf("") }
 
@@ -104,6 +108,26 @@ fun CustomerSelectionDialog(
                         colors = textFieldColors
                     )
                     Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newEmail,
+                        onValueChange = { newEmail = it },
+                        label = { Text("Email Address (Optional)") },
+                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color.Gray) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = textFieldColors
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = newAddress,
+                        onValueChange = { newAddress = it },
+                        label = { Text("Billing Address (Optional)") },
+                        leadingIcon = { Icon(Icons.Default.Home, contentDescription = null, tint = Color.Gray) },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxLines = 2,
+                        colors = textFieldColors
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -142,6 +166,8 @@ fun CustomerSelectionDialog(
                                     onAddNewCustomer(
                                         newName,
                                         newPhone,
+                                        newEmail,
+                                        newAddress,
                                         if (isGstRegistered) 1 else 0,
                                         if (isGstRegistered) gstin else null
                                     )
