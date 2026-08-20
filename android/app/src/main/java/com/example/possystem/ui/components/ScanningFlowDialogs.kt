@@ -42,7 +42,7 @@ fun CustomerSelectionDialog(
         } else {
             customers.filter {
                 it.name.contains(searchQuery, ignoreCase = true) ||
-                it.phone.contains(searchQuery)
+                (it.phone?.contains(searchQuery) == true)
             }
         }
     }
@@ -169,7 +169,7 @@ fun CustomerSelectionDialog(
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
                                         Text(customer.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        if (customer.phone.isNotBlank()) {
+                                        if (!customer.phone.isNullOrBlank()) {
                                             Text(customer.phone, fontSize = 12.sp, color = Color.Gray)
                                         }
                                     }
