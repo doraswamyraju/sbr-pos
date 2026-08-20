@@ -32,7 +32,7 @@ const Sidebar = ({ onLogout, userRole, expanded = false, setExpanded = () => {} 
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto sidebar-scrollable">
+      <nav className="flex-1 min-h-0 overflow-y-auto sidebar-scrollable">
         <ul>
           <li className="mb-2">
             <NavLink to="/inventory" className={({ isActive }) => isActive ? `${baseLinkStyle} ${activeLinkStyle}` : `${baseLinkStyle} ${defaultLinkStyle}`}>

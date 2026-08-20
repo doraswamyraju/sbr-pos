@@ -63,11 +63,22 @@ main {
 
 /* Sidebar scrollable layout */
 .sidebar-scrollable {
-  height: 100vh;
-  overflow-y: auto;
   scrollbar-width: none; /* Firefox */
 }
 .sidebar-scrollable::-webkit-scrollbar {
   display: none; /* Safari and Chrome */
+}
+
+/* Compact sidebar styles on short screens (max-height: 768px) */
+@media (max-height: 768px) {
+  .mb-8 {
+    margin-bottom: 1rem !important; /* reduce logo bottom margin */
+  }
+  .mb-2 {
+    margin-bottom: 0.25rem !important; /* reduce spacing between menu items */
+  }
+  .p-3 {
+    padding: 0.5rem 0.75rem !important; /* reduce padding inside menu items */
+  }
 }
 
