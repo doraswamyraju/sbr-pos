@@ -13,9 +13,9 @@ grep -r "pos.sriddha.com" /etc/nginx/
 ```
 Look for the `root` directive inside the returned configuration block. For example:
 ```nginx
-root /var/www/sbr-pos/build;
+root /var/www/rajugariventures/sbr-pos/build;
 ```
-The project root directory would be `/var/www/sbr-pos`.
+The project root directory is `/var/www/rajugariventures/sbr-pos`.
 
 ### Method B: Find git repositories on the server
 Search the VPS filesystem for directories named `sbr-pos` or directories containing a `.git` folder:
@@ -29,11 +29,11 @@ find /var/www /home /root -name ".git" -type d 2>/dev/null
 
 ## 2. Deploying Updates
 
-Once you have located the correct directory (e.g., `/var/www/sbr-pos`), run these commands:
+Run these commands on your VPS:
 
 ```bash
-# 1. Navigate to the project directory (replace with your actual directory path found above)
-cd /var/www/sbr-pos
+# 1. Navigate to the project directory
+cd /var/www/rajugariventures/sbr-pos
 
 # 2. Pull the latest changes from Git
 git pull origin main
