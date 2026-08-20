@@ -19,9 +19,9 @@ const Sidebar = ({ onLogout, userRole, expanded = false, setExpanded = () => {} 
     <aside
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
-      className={`bg-primary-blue text-white ${expanded ? 'w-64' : 'w-20'} sidebar-scrollable p-4 flex flex-col fixed left-0 top-0 transition-all duration-300 z-40`}
+      className={`bg-primary-blue text-white ${expanded ? 'w-64' : 'w-20'} h-screen p-4 flex flex-col fixed left-0 top-0 transition-all duration-300 z-40`}
     >
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex items-center justify-between shrink-0">
         {expanded ? (
           <div className="flex items-center space-x-2">
             <img src={logoImg} alt="Logo" className="h-9 w-auto bg-white rounded p-1 object-contain" />
@@ -32,7 +32,7 @@ const Sidebar = ({ onLogout, userRole, expanded = false, setExpanded = () => {} 
         )}
       </div>
 
-      <nav className="flex-1">
+      <nav className="flex-1 overflow-y-auto sidebar-scrollable">
         <ul>
           <li className="mb-2">
             <NavLink to="/inventory" className={({ isActive }) => isActive ? `${baseLinkStyle} ${activeLinkStyle}` : `${baseLinkStyle} ${defaultLinkStyle}`}>
@@ -103,7 +103,7 @@ const Sidebar = ({ onLogout, userRole, expanded = false, setExpanded = () => {} 
         </ul>
       </nav>
 
-      <div className="mt-auto">
+      <div className="mt-auto shrink-0">
         <button onClick={onLogout} className="w-full flex items-center p-3 rounded-lg hover:bg-red-600 transition-colors">
           <FaSignOutAlt className="mr-3" />
           {expanded && 'Logout'}
