@@ -19,7 +19,7 @@ const Sidebar = ({ onLogout, userRole, expanded = false, setExpanded = () => {} 
     <aside
       onMouseEnter={() => setExpanded(true)}
       onMouseLeave={() => setExpanded(false)}
-      className={`bg-primary-blue text-white ${expanded ? 'w-64' : 'w-20'} min-h-screen p-4 flex flex-col fixed left-0 top-0 transition-all duration-300 z-40`}
+      className={`bg-primary-blue text-white ${expanded ? 'w-64' : 'w-20'} sidebar-scrollable p-4 flex flex-col fixed left-0 top-0 transition-all duration-300 z-40`}
     >
       <div className="mb-8 flex items-center justify-between">
         {expanded ? (

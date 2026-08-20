@@ -60,3 +60,14 @@ main {
     margin-top: 0;
   }
 }
+
+/* Sidebar scrollable layout */
+.sidebar-scrollable {
+  height: 100vh;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+}
+.sidebar-scrollable::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
