@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.possystem.data.model.Product
+import com.example.possystem.theme.*
 import com.example.possystem.ui.components.BarcodeBottomSheet
 import com.example.possystem.ui.components.CheckoutBottomSheet
 import com.example.possystem.ui.components.InvoiceDialog
@@ -63,6 +64,53 @@ fun PosScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
+            // Customer Header Indicator Card
+            Surface(
+                color = PrimaryBlueLight,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            tint = PrimaryBlue,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (selectedCustomer != null) "Customer: ${selectedCustomer!!.name}" else "Walk-in Customer",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryBlueDark
+                        )
+                    }
+                    if (selectedCustomer?.gstin?.isNotBlank() == true) {
+                        Surface(
+                            color = PrimaryBlue,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "GST",
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             // Header Search & Barcode
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -71,16 +119,22 @@ fun PosScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { posViewModel.setSearchQuery(it) },
-                    placeholder = { Text("Search products or SKU...") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    placeholder = { Text("Search products or SKU...", color = TextLight) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryBlue) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { posViewModel.setSearchQuery("") }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear")
+                                Icon(Icons.Default.Close, contentDescription = "Clear", tint = TextMuted)
                             }
                         }
                     },
                     modifier = Modifier.weight(1f),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = TextDark,
+                        unfocusedTextColor = TextDark,
+                        focusedBorderColor = PrimaryBlue,
+                        unfocusedBorderColor = BorderSubtle
+                    ),
                     shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
@@ -95,12 +149,12 @@ fun PosScreen(
                     },
                     modifier = Modifier
                         .size(52.dp)
-                        .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(12.dp))
+                        .background(PrimaryBlue, RoundedCornerShape(12.dp))
                 ) {
                     Icon(
                         Icons.Default.QrCodeScanner,
-                        contentDescription = "Barcode",
-                        tint = MaterialTheme.colorScheme.primary
+                        contentDescription = "Barcode Scanner",
+                        tint = Color.White
                     )
                 }
             }
@@ -117,11 +171,19 @@ fun PosScreen(
                     FilterChip(
                         selected = isSel,
                         onClick = { posViewModel.setSelectedCategory(cat) },
-                        label = { Text(cat) },
+                        label = {
+                            Text(
+                                text = cat,
+                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium
+                            )
+                        },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                        )
+                            selectedContainerColor = PrimaryBlue,
+                            selectedLabelColor = Color.White,
+                            containerColor = Color.White,
+                            labelColor = TextMuted
+                        ),
+                        shape = RoundedCornerShape(20.dp)
                     )
                 }
             }
@@ -134,7 +196,16 @@ fun PosScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "No products found", color = Color.Gray)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.SearchOff,
+                            contentDescription = null,
+                            tint = TextLight,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = "No matching products found", color = TextMuted, fontSize = 14.sp)
+                    }
                 }
             } else {
                 LazyVerticalGrid(
@@ -214,7 +285,8 @@ fun ProductCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
             Row(
@@ -223,14 +295,14 @@ fun ProductCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Surface(
-                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    color = SecondaryTealLight,
                     shape = RoundedCornerShape(6.dp)
                 ) {
                     Text(
                         text = product.category ?: "General",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        color = SecondaryTeal,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
@@ -238,7 +310,7 @@ fun ProductCard(
                 Text(
                     text = "Stock: ${product.stockLevel}",
                     fontSize = 11.sp,
-                    color = if (product.stockLevel <= 5) Color(0xFFEF4444) else Color(0xFF10B981),
+                    color = if (product.stockLevel <= 5) StatusError else StatusSuccess,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -249,6 +321,7 @@ fun ProductCard(
                 text = product.name,
                 fontWeight = FontWeight.Bold,
                 fontSize = 14.sp,
+                color = TextDark,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -257,7 +330,7 @@ fun ProductCard(
                 Text(
                     text = "SKU: ${product.sku}",
                     fontSize = 11.sp,
-                    color = Color.Gray
+                    color = TextLight
                 )
             }
 
@@ -272,19 +345,19 @@ fun ProductCard(
                     text = "₹${String.format("%.2f", product.price)}",
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary
+                    color = PrimaryBlue
                 )
 
                 IconButton(
                     onClick = onAddToCart,
                     modifier = Modifier
                         .size(36.dp)
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp))
+                        .background(PrimaryBlue, RoundedCornerShape(10.dp))
                 ) {
                     Icon(
                         Icons.Default.Add,
                         contentDescription = "Add to Cart",
-                        tint = MaterialTheme.colorScheme.onPrimary
+                        tint = Color.White
                     )
                 }
             }
@@ -302,7 +375,7 @@ fun FloatingCartBar(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
+        colors = CardDefaults.cardColors(containerColor = PrimaryBlue),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Row(
@@ -315,12 +388,12 @@ fun FloatingCartBar(
             Column {
                 Text(
                     text = "$itemCount item(s) selected",
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                    color = Color.White.copy(alpha = 0.8f),
                     fontSize = 12.sp
                 )
                 Text(
                     text = "₹${String.format("%.2f", finalTotal)}",
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = Color.White,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Black
                 )
@@ -329,8 +402,8 @@ fun FloatingCartBar(
             Button(
                 onClick = onCheckoutClick,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onPrimary,
-                    contentColor = MaterialTheme.colorScheme.primary
+                    containerColor = Color.White,
+                    contentColor = PrimaryBlue
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -341,3 +414,4 @@ fun FloatingCartBar(
         }
     }
 }
+

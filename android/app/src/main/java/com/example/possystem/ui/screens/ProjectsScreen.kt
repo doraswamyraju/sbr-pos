@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.possystem.data.model.Project
 import com.example.possystem.data.model.Task
+import com.example.possystem.theme.*
 import com.example.possystem.ui.components.AddTaskBottomSheet
 import com.example.possystem.ui.viewmodel.ProjectsViewModel
 
@@ -49,9 +50,10 @@ fun ProjectsScreen(
                         projectsViewModel.setShowAddProjectSheet(true)
                     }
                 },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = PrimaryBlue,
+                contentColor = Color.White
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Task", tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.Default.Add, contentDescription = "Add Task")
             }
         }
     ) { padding ->
@@ -63,13 +65,19 @@ fun ProjectsScreen(
         ) {
             // Project Selector Header
             Text(
-                text = "Projects & Tasks",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                text = "Projects & Solar Installation Tasks",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                color = PrimaryBlueDark
+            )
+            Text(
+                text = "Track site progress, sub-tasks, and timelines",
+                fontSize = 12.sp,
+                color = TextMuted
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Project Cards Horizontal or List
+            // Project Cards List
             if (projects.isNotEmpty()) {
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth(),
@@ -88,7 +96,7 @@ fun ProjectsScreen(
                 }
             } else {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = "No projects found.", color = Color.Gray)
+                    Text(text = "No active projects found.", color = TextMuted)
                 }
             }
         }
@@ -119,9 +127,9 @@ fun ProjectCardItem(
             .clickable(onClick = onSelect),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface
+            containerColor = if (isSelected) PrimaryBlueLight else Color.White
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -130,18 +138,18 @@ fun ProjectCardItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = project.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text(text = project.name, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark)
                     if (!project.clientName.isNullOrBlank()) {
-                        Text(text = "Client: ${project.clientName}", fontSize = 12.sp, color = Color.Gray)
+                        Text(text = "Client: ${project.clientName}", fontSize = 12.sp, color = TextMuted)
                     }
                 }
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = PrimaryBlue,
                     shape = RoundedCornerShape(20.dp)
                 ) {
                     Text(
                         text = "${project.progress}% Complete",
-                        color = MaterialTheme.colorScheme.primary,
+                        color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -153,9 +161,12 @@ fun ProjectCardItem(
 
             LinearProgressIndicator(
                 progress = { project.progress / 100f },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
-                color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.primaryContainer
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = PrimaryBlue,
+                trackColor = BorderSubtle
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -163,14 +174,15 @@ fun ProjectCardItem(
             // Expandable tasks section
             AnimatedVisibility(visible = isSelected) {
                 Column {
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BorderSubtle)
                     Text(
                         text = "Task Checklist (${project.tasks.count { it.status == "Completed" }}/${project.tasks.size})",
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = TextDark
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     if (project.tasks.isEmpty()) {
-                        Text(text = "No tasks added yet. Tap + to add task.", fontSize = 12.sp, color = Color.Gray)
+                        Text(text = "No tasks added yet. Tap + to add task.", fontSize = 12.sp, color = TextMuted)
                     } else {
                         project.tasks.forEach { task ->
                             TaskItemRow(
@@ -194,29 +206,34 @@ fun TaskItemRow(
 ) {
     val isDone = task.status == "Completed"
     val priorityColor = when (task.priority) {
-        "High" -> Color(0xFFEF4444)
-        "Medium" -> Color(0xFFF59E0B)
-        else -> Color(0xFF10B981)
+        "High" -> StatusError
+        "Medium" -> AccentAmber
+        else -> StatusSuccess
     }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
                 checked = isDone,
-                onCheckedChange = { onToggleTask() }
+                onCheckedChange = { onToggleTask() },
+                colors = CheckboxDefaults.colors(checkedColor = PrimaryBlue)
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = task.title,
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp,
-                    color = if (isDone) Color.Gray else Color.Unspecified
+                    color = if (isDone) TextLight else TextDark
                 )
                 if (!task.assignedTo.isNullOrBlank()) {
-                    Text(text = "Assigned to: ${task.assignedTo}", fontSize = 11.sp, color = Color.Gray)
+                    Text(text = "Assigned to: ${task.assignedTo}", fontSize = 11.sp, color = TextMuted)
                 }
             }
             Surface(
@@ -244,13 +261,14 @@ fun TaskItemRow(
                         Checkbox(
                             checked = st.isCompleted,
                             onCheckedChange = { onToggleSubtask(st.id) },
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(24.dp),
+                            colors = CheckboxDefaults.colors(checkedColor = PrimaryBlue)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             text = st.title,
                             fontSize = 12.sp,
-                            color = if (st.isCompleted) Color.Gray else Color.DarkGray
+                            color = if (st.isCompleted) TextLight else TextDark
                         )
                     }
                 }
@@ -258,3 +276,4 @@ fun TaskItemRow(
         }
     }
 }
+

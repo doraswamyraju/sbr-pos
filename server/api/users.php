@@ -1,9 +1,12 @@
 <?php
-$allowed_origins = ['http://localhost:3000', 'https://rajugariventures.com', 'http://127.0.0.1:3000'];
+$allowed_origins = ['http://localhost:3000', 'https://pos.sriddha.com', 'https://sbrpos.rajugariventures.com', 'https://rajugariventures.com', 'http://127.0.0.1:3000'];
 if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
+
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+} else if (isset($_SERVER['HTTP_ORIGIN'])) {
     header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
 } else {
-    header("Access-Control-Allow-Origin: http://localhost:3000");
+    header("Access-Control-Allow-Origin: *");
 }
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
@@ -25,7 +28,7 @@ if (!isset($conn)) {
     apiResponse('error', 'Database connection not available');
 }
 
-// Auto-migration for is_active and permissions columns
+// Auto-migration for is_active, permissions, and printer_type columns
 $res1 = $conn->query("SHOW COLUMNS FROM `users` LIKE 'is_active'");
 if ($res1 && $res1->num_rows == 0) {
     $conn->query("ALTER TABLE `users` ADD `is_active` TINYINT(1) NOT NULL DEFAULT 1");
@@ -35,6 +38,12 @@ $res2 = $conn->query("SHOW COLUMNS FROM `users` LIKE 'permissions'");
 if ($res2 && $res2->num_rows == 0) {
     $conn->query("ALTER TABLE `users` ADD `permissions` TEXT NULL");
 }
+
+$res3 = $conn->query("SHOW COLUMNS FROM `users` LIKE 'printer_type'");
+if ($res3 && $res3->num_rows == 0) {
+    $conn->query("ALTER TABLE `users` ADD `printer_type` VARCHAR(50) NULL DEFAULT 'auto'");
+}
+
 
 $ALLOWED_PRINTER_TYPES = ['auto', 'thermal-3in', 'regular-a4'];
 $method = $_SERVER['REQUEST_METHOD'];

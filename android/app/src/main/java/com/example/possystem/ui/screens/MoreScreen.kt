@@ -17,14 +17,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.possystem.ui.viewmodel.AuthViewModel
-import com.example.possystem.ui.viewmodel.CustomersViewModel
-import com.example.possystem.ui.viewmodel.PurchasesViewModel
-import com.example.possystem.ui.viewmodel.ReportsViewModel
-import com.example.possystem.ui.viewmodel.UsersSettingsViewModel
+import com.example.possystem.ui.viewmodel.*
 
 enum class MoreSubScreen {
-    GRID, CUSTOMERS, PURCHASES, REPORTS, SETTINGS
+    GRID, LEADS, CUSTOMERS, PURCHASES, REPORTS, SETTINGS
 }
 
 @Composable
@@ -33,6 +29,7 @@ fun MoreScreen(
     purchasesViewModel: PurchasesViewModel,
     reportsViewModel: ReportsViewModel,
     usersSettingsViewModel: UsersSettingsViewModel,
+    leadsViewModel: LeadsViewModel? = null,
     authViewModel: AuthViewModel
 ) {
     var subScreen by remember { mutableStateOf(MoreSubScreen.GRID) }
@@ -50,8 +47,9 @@ fun MoreScreen(
                 }
                 Text(
                     text = when (subScreen) {
-                        MoreSubScreen.CUSTOMERS -> "Customers"
-                        MoreSubScreen.PURCHASES -> "Purchases"
+                        MoreSubScreen.LEADS -> "Leads & Prospects"
+                        MoreSubScreen.CUSTOMERS -> "Customers Directory"
+                        MoreSubScreen.PURCHASES -> "Purchases & Restock"
                         MoreSubScreen.REPORTS -> "Reports & Analytics"
                         MoreSubScreen.SETTINGS -> "Settings & Users"
                         else -> ""
@@ -62,6 +60,11 @@ fun MoreScreen(
 
             Box(modifier = Modifier.weight(1f)) {
                 when (subScreen) {
+                    MoreSubScreen.LEADS -> {
+                        if (leadsViewModel != null) {
+                            LeadsScreen(leadsViewModel = leadsViewModel, customersViewModel = customersViewModel)
+                        }
+                    }
                     MoreSubScreen.CUSTOMERS -> CustomersScreen(customersViewModel = customersViewModel)
                     MoreSubScreen.PURCHASES -> PurchasesScreen(purchasesViewModel = purchasesViewModel)
                     MoreSubScreen.REPORTS -> ReportsScreen(reportsViewModel = reportsViewModel)
@@ -89,6 +92,7 @@ fun MoreScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             val menuItems = listOf(
+                MoreMenuItem("Leads & Prospects", "Track sales leads & pipeline", Icons.Default.FilterList, Color(0xFFEC4899), MoreSubScreen.LEADS),
                 MoreMenuItem("Customers Directory", "Manage customer profiles & debts", Icons.Default.People, Color(0xFF3B82F6), MoreSubScreen.CUSTOMERS),
                 MoreMenuItem("Purchases Orders", "Supplier restock & PO logs", Icons.Default.ShoppingBag, Color(0xFF10B981), MoreSubScreen.PURCHASES),
                 MoreMenuItem("Reports & Analytics", "Financial revenue & sales charts", Icons.Default.BarChart, Color(0xFF8B5CF6), MoreSubScreen.REPORTS),
@@ -106,6 +110,7 @@ fun MoreScreen(
                             .fillMaxWidth()
                             .clickable { subScreen = item.targetScreen },
                         shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(
@@ -141,3 +146,4 @@ data class MoreMenuItem(
     val color: Color,
     val targetScreen: MoreSubScreen
 )
+

@@ -89,13 +89,13 @@ fun MainScreen(
                     NavTab.POS -> PosScreen(posViewModel = posViewModel)
                     NavTab.INVENTORY -> InventoryScreen(inventoryViewModel = inventoryViewModel)
                     NavTab.SCANNER -> { /* Action tab, handled on click */ }
-                    NavTab.LEADS -> LeadsScreen(leadsViewModel = leadsViewModel, customersViewModel = customersViewModel)
                     NavTab.PROJECTS -> ProjectsScreen(projectsViewModel = projectsViewModel)
                     NavTab.MORE -> MoreScreen(
                         customersViewModel = customersViewModel,
                         purchasesViewModel = purchasesViewModel,
                         reportsViewModel = reportsViewModel,
                         usersSettingsViewModel = usersSettingsViewModel,
+                        leadsViewModel = leadsViewModel,
                         authViewModel = authViewModel
                     )
                 }

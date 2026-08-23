@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.possystem.data.model.Product
+import com.example.possystem.theme.*
 import com.example.possystem.ui.components.AddProductBottomSheet
 import com.example.possystem.ui.viewmodel.InventoryViewModel
 
@@ -52,9 +53,10 @@ fun InventoryScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { inventoryViewModel.openAddProductSheet() },
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = PrimaryBlue,
+                contentColor = Color.White
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Product", tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.Default.Add, contentDescription = "Add Product")
             }
         }
     ) { padding ->
@@ -67,8 +69,8 @@ fun InventoryScreen(
             // Inventory Stat Banner
             val bannerGradient = Brush.horizontalGradient(
                 colors = listOf(
-                    Color(0xFF3B82F6),
-                    Color(0xFF2563EB)
+                    PrimaryBlue,
+                    PrimaryBlueDark
                 )
             )
             Card(
@@ -100,11 +102,11 @@ fun InventoryScreen(
                     }
                     if (lowStockCount > 0) {
                         Surface(
-                            color = Color(0xFFEF4444),
+                            color = StatusError,
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
-                                text = "$lowStockCount Alerts",
+                                text = "$lowStockCount Low Stock",
                                 color = Color.White,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -121,13 +123,15 @@ fun InventoryScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { inventoryViewModel.setSearchQuery(it) },
-                placeholder = { Text("Search inventory by name or SKU...", color = Color.Gray) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color(0xFF3B82F6)) },
+                placeholder = { Text("Search inventory by name or SKU...", color = TextLight) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryBlue) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFF3B82F6),
-                    unfocusedBorderColor = Color.Gray.copy(alpha = 0.4f)
+                    focusedTextColor = TextDark,
+                    unfocusedTextColor = TextDark,
+                    focusedBorderColor = PrimaryBlue,
+                    unfocusedBorderColor = BorderSubtle
                 ),
                 singleLine = true
             )
@@ -146,8 +150,10 @@ fun InventoryScreen(
                         onClick = { inventoryViewModel.setSelectedCategory(cat) },
                         label = { Text(cat, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal) },
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color(0xFF3B82F6),
-                            selectedLabelColor = Color.White
+                            selectedContainerColor = PrimaryBlue,
+                            selectedLabelColor = Color.White,
+                            containerColor = Color.White,
+                            labelColor = TextMuted
                         ),
                         shape = RoundedCornerShape(10.dp)
                     )
@@ -159,7 +165,7 @@ fun InventoryScreen(
             // Product List
             if (filteredProducts.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = "No products found in inventory.", color = Color.Gray)
+                    Text(text = "No products found in inventory.", color = TextMuted)
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -195,24 +201,27 @@ fun InventoryItemCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(14.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(14.dp)
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = product.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(text = product.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextDark)
                     Spacer(modifier = Modifier.width(8.dp))
                     Surface(
-                        color = if (product.stockLevel <= 5) Color(0xFFFEE2E2) else Color(0xFFD1FAE5),
+                        color = if (product.stockLevel <= 5) StatusErrorBg else StatusSuccessBg,
                         shape = RoundedCornerShape(6.dp)
                     ) {
                         Text(
                             text = if (product.stockLevel <= 5) "Low (${product.stockLevel})" else "Stock: ${product.stockLevel}",
-                            color = if (product.stockLevel <= 5) Color(0xFFDC2626) else Color(0xFF059669),
+                            color = if (product.stockLevel <= 5) StatusError else StatusSuccess,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -225,26 +234,27 @@ fun InventoryItemCard(
                 Text(
                     text = "SKU: ${product.sku ?: "N/A"} | Category: ${product.category ?: "General"}",
                     fontSize = 12.sp,
-                    color = Color.Gray
+                    color = TextMuted
                 )
 
                 Text(
                     text = "Price: ₹${String.format("%.2f", product.price)}",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = PrimaryBlue,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
 
             Row {
                 IconButton(onClick = onEdit) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = PrimaryBlue)
                 }
                 IconButton(onClick = onDelete) {
-                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color(0xFFEF4444))
+                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = StatusError)
                 }
             }
         }
     }
 }
+
