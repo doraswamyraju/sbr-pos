@@ -1,32 +1,37 @@
 package com.example.possystem.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import com.example.possystem.data.model.Customer
 import com.example.possystem.data.model.Product
-import com.example.possystem.theme.*
-import com.example.possystem.ui.components.BarcodeBottomSheet
 import com.example.possystem.ui.components.CheckoutBottomSheet
 import com.example.possystem.ui.components.InvoiceDialog
+import com.example.possystem.ui.components.AddCustomerBottomSheet
 import com.example.possystem.ui.viewmodel.PosViewModel
+import com.example.possystem.theme.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PosScreen(
     posViewModel: PosViewModel
@@ -34,214 +39,469 @@ fun PosScreen(
     val products by posViewModel.products.collectAsState()
     val customers by posViewModel.customers.collectAsState()
     val cart by posViewModel.cart.collectAsState()
-    val searchQuery by posViewModel.searchQuery.collectAsState()
-    val selectedCategory by posViewModel.selectedCategory.collectAsState()
     val showCheckoutSheet by posViewModel.showCheckoutSheet.collectAsState()
-    val showBarcodeSheet by posViewModel.showBarcodeSheet.collectAsState()
     val showInvoiceModal by posViewModel.showInvoiceModal.collectAsState()
     val lastCompletedSale by posViewModel.lastCompletedSale.collectAsState()
     val selectedCustomer by posViewModel.selectedCustomer.collectAsState()
     val discount by posViewModel.discount.collectAsState()
     val paymentMethod by posViewModel.paymentMethod.collectAsState()
 
-    val categories = remember(products) {
-        listOf("All") + products.mapNotNull { it.category }.distinct()
-    }
+    var customerSearchQuery by remember { mutableStateOf("") }
+    var showAddCustomerSheet by remember { mutableStateOf(false) }
+    var productOverlayOpen by remember { mutableStateOf(false) }
+    var productSearchQuery by remember { mutableStateOf("") }
 
-    val filteredProducts = remember(products, searchQuery, selectedCategory) {
-        products.filter { p ->
-            val matchesQuery = searchQuery.isBlank() ||
-                    p.name.contains(searchQuery, ignoreCase = true) ||
-                    (p.sku?.contains(searchQuery, ignoreCase = true) == true)
-            val matchesCategory = selectedCategory == "All" || p.category == selectedCategory
-            matchesQuery && matchesCategory
+    val filteredCustomers = remember(customers, customerSearchQuery) {
+        if (customerSearchQuery.isBlank()) emptyList()
+        else customers.filter { c ->
+            c.name.contains(customerSearchQuery, ignoreCase = true) ||
+            (c.phone?.contains(customerSearchQuery) == true)
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
+    val filteredProducts = remember(products, productSearchQuery) {
+        if (productSearchQuery.isBlank()) products
+        else products.filter { p ->
+            p.name.contains(productSearchQuery, ignoreCase = true) ||
+            (p.sku?.contains(productSearchQuery, ignoreCase = true) == true)
+        }
+    }
+
+    val itemsCount = remember(cart) { cart.sumOf { it.quantity } }
+    val payableDisplay = posViewModel.finalTotal
+
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = TextDark,
+        unfocusedTextColor = TextDark,
+        focusedBorderColor = PrimaryBlue,
+        unfocusedBorderColor = BorderSubtle,
+        cursorColor = PrimaryBlue,
+        focusedLabelColor = PrimaryBlue,
+        unfocusedLabelColor = Color.Gray
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF3F4F6))
+    ) {
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
+                .padding(bottom = 80.dp), // Spacing for bottom complete bar
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Customer Header Indicator Card
+            // STEP 1: Select Customer
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Step 1: Select Customer",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = TextDark
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = customerSearchQuery,
+                                onValueChange = { customerSearchQuery = it },
+                                placeholder = { Text("Search customer by name or phone...", color = TextLight, fontSize = 13.sp) },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryBlue) },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                singleLine = true,
+                                colors = textFieldColors
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            IconButton(
+                                onClick = { showAddCustomerSheet = true },
+                                modifier = Modifier
+                                    .size(52.dp)
+                                    .background(PrimaryBlue, RoundedCornerShape(10.dp))
+                            ) {
+                                Icon(Icons.Default.Add, contentDescription = "Add Customer", tint = Color.White)
+                            }
+                        }
+
+                        // Customer Search Dropdown Results
+                        if (filteredCustomers.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, BorderSubtle, RoundedCornerShape(8.dp))
+                                    .background(Color.White)
+                            ) {
+                                filteredCustomers.forEach { customer ->
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                posViewModel.selectCustomer(customer)
+                                                customerSearchQuery = ""
+                                            }
+                                            .padding(12.dp)
+                                    ) {
+                                        Text(customer.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark)
+                                        if (!customer.phone.isNullOrBlank()) {
+                                            Text(customer.phone, fontSize = 12.sp, color = TextMuted)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Selected Customer Card
+                        Spacer(modifier = Modifier.height(12.dp))
+                        if (selectedCustomer != null) {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.5f)),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF0F7FF))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryBlue)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(selectedCustomer!!.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark)
+                                        if (!selectedCustomer!!.phone.isNullOrBlank()) {
+                                            Text(selectedCustomer!!.phone!!, fontSize = 12.sp, color = TextMuted)
+                                        }
+                                        if (selectedCustomer!!.isGstRegistered == 1 && !selectedCustomer!!.gstin.isNullOrBlank()) {
+                                            Text("GST: ${selectedCustomer!!.gstin!!}", fontSize = 11.sp, color = SecondaryTeal, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                    IconButton(onClick = { posViewModel.selectCustomer(null) }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Clear", tint = Color.Gray)
+                                    }
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(BorderStroke(1.dp, BorderSubtle), RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFF9FAFB))
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("Select a customer to begin the sale.", color = TextMuted, fontSize = 13.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // STEP 2: Add Products
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Step 2: Add Products",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = TextDark
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = { productOverlayOpen = true },
+                                    enabled = selectedCustomer != null,
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .background(
+                                            if (selectedCustomer != null) PrimaryBlue else Color(0xFFE5E7EB),
+                                            RoundedCornerShape(10.dp)
+                                        )
+                                ) {
+                                    Icon(Icons.Default.Search, contentDescription = "Search Products", tint = if (selectedCustomer != null) Color.White else Color.Gray)
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                IconButton(
+                                    onClick = {
+                                        com.example.possystem.MainActivity.startBarcodeScan { barcode ->
+                                            posViewModel.onBarcodeScanned(barcode)
+                                        }
+                                    },
+                                    enabled = selectedCustomer != null,
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .background(
+                                            if (selectedCustomer != null) Color.White else Color(0xFFE5E7EB),
+                                            RoundedCornerShape(10.dp)
+                                        )
+                                        .border(
+                                            if (selectedCustomer != null) BorderStroke(1.dp, BorderSubtle) else BorderStroke(0.dp, Color.Transparent),
+                                            RoundedCornerShape(10.dp)
+                                        )
+                                ) {
+                                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode", tint = if (selectedCustomer != null) PrimaryBlue else Color.Gray)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Cart items list
+                        if (cart.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(100.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("No products added yet", color = TextLight, fontSize = 13.sp)
+                            }
+                        } else {
+                            cart.forEach { item ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp)
+                                        .background(Color(0xFFF9FAFB), RoundedCornerShape(8.dp))
+                                        .padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(item.product.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text("₹${String.format("%.2f", item.unitPrice)} each", fontSize = 12.sp, color = TextMuted)
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        // Quantity adjusts
+                                        IconButton(
+                                            onClick = { posViewModel.updateCartQuantity(item.product.id, item.quantity - 1) },
+                                            modifier = Modifier.size(28.dp).background(Color(0xFFE5E7EB), RoundedCornerShape(6.dp))
+                                        ) {
+                                            Text("-", fontWeight = FontWeight.Bold, color = TextDark)
+                                        }
+                                        Text(item.quantity.toString(), fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark)
+                                        IconButton(
+                                            onClick = { posViewModel.updateCartQuantity(item.product.id, item.quantity + 1) },
+                                            modifier = Modifier.size(28.dp).background(Color(0xFFE5E7EB), RoundedCornerShape(6.dp))
+                                        ) {
+                                            Text("+", fontWeight = FontWeight.Bold, color = TextDark)
+                                        }
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        IconButton(
+                                            onClick = { posViewModel.removeFromCart(item.product.id) },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = StatusError, modifier = Modifier.size(20.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Flat Discount
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Divider(color = BorderSubtle)
+                        Spacer(modifier = Modifier.height(10.dp))
+                        
+                        OutlinedTextField(
+                            value = if (discount == 0.0) "" else discount.toString(),
+                            onValueChange = { 
+                                val parsed = it.toDoubleOrNull() ?: 0.0
+                                posViewModel.setDiscount(parsed)
+                            },
+                            label = { Text("Discount (Flat ₹)", fontSize = 12.sp) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = textFieldColors
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Payable", fontWeight = FontWeight.Bold, color = TextDark, fontSize = 15.sp)
+                            Text("₹${String.format("%.2f", payableDisplay)}", fontWeight = FontWeight.Black, color = PrimaryBlue, fontSize = 16.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fixed Bottom Bar
+        if (selectedCustomer != null) {
             Surface(
-                color = PrimaryBlueLight,
-                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp)
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
+                color = Color.White,
+                tonalElevation = 8.dp,
+                shadowElevation = 8.dp
             ) {
                 Row(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(12.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = null,
-                            tint = PrimaryBlue,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (selectedCustomer != null) "Customer: ${selectedCustomer!!.name}" else "Walk-in Customer",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = PrimaryBlueDark
-                        )
-                    }
-                    if (selectedCustomer?.gstin?.isNotBlank() == true) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
                         Surface(
-                            color = PrimaryBlue,
-                            shape = RoundedCornerShape(4.dp)
+                            color = PrimaryBlueLight,
+                            shape = RoundedCornerShape(100.dp),
+                            modifier = Modifier.size(44.dp)
                         ) {
-                            Text(
-                                text = "GST",
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Header Search & Barcode
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { posViewModel.setSearchQuery(it) },
-                    placeholder = { Text("Search products or SKU...", color = TextLight) },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryBlue) },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { posViewModel.setSearchQuery("") }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear", tint = TextMuted)
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = PrimaryBlue)
                             }
                         }
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextDark,
-                        unfocusedTextColor = TextDark,
-                        focusedBorderColor = PrimaryBlue,
-                        unfocusedBorderColor = BorderSubtle
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                IconButton(
-                    onClick = {
-                        com.example.possystem.MainActivity.startBarcodeScan { barcode ->
-                            posViewModel.onBarcodeScanned(barcode)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text("Items Summary", fontSize = 10.sp, color = TextMuted)
+                            Text("$itemsCount items • ₹${String.format("%.2f", payableDisplay)}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark)
                         }
-                    },
-                    modifier = Modifier
-                        .size(52.dp)
-                        .background(PrimaryBlue, RoundedCornerShape(12.dp))
-                ) {
-                    Icon(
-                        Icons.Default.QrCodeScanner,
-                        contentDescription = "Barcode Scanner",
-                        tint = Color.White
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Category Chips Row
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(categories) { cat ->
-                    val isSel = selectedCategory == cat
-                    FilterChip(
-                        selected = isSel,
-                        onClick = { posViewModel.setSelectedCategory(cat) },
-                        label = {
-                            Text(
-                                text = cat,
-                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = PrimaryBlue,
-                            selectedLabelColor = Color.White,
-                            containerColor = Color.White,
-                            labelColor = TextMuted
-                        ),
-                        shape = RoundedCornerShape(20.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Product Grid
-            if (filteredProducts.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            Icons.Default.SearchOff,
-                            contentDescription = null,
-                            tint = TextLight,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "No matching products found", color = TextMuted, fontSize = 14.sp)
                     }
-                }
-            } else {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    items(filteredProducts) { product ->
-                        ProductCard(
-                            product = product,
-                            onAddToCart = { posViewModel.addToCart(product) }
-                        )
+                    Button(
+                        onClick = { posViewModel.setShowCheckoutSheet(true) },
+                        enabled = cart.isNotEmpty(),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.height(44.dp)
+                    ) {
+                        Text("Complete Sale", fontWeight = FontWeight.Bold)
                     }
                 }
             }
-        }
-
-        // Floating Cart Summary Bar
-        val cartItemsCount = remember(cart) { cart.sumOf { it.quantity } }
-        val cartSubtotal = remember(cart) { cart.sumOf { it.totalPrice } }
-        val cartFinalTotal = remember(cartSubtotal, discount) { (cartSubtotal - discount).coerceAtLeast(0.0) }
-        
-        if (cartItemsCount > 0) {
-            FloatingCartBar(
-                itemCount = cartItemsCount,
-                finalTotal = cartFinalTotal,
-                onCheckoutClick = { posViewModel.setShowCheckoutSheet(true) },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(16.dp)
-            )
         }
     }
 
-    // Bottom Sheets & Dialogs
+    // Add New Customer Bottom Sheet
+    if (showAddCustomerSheet) {
+        AddCustomerBottomSheet(
+            onSave = { n, p, e, a, g, gstin ->
+                posViewModel.selectCustomer(
+                    Customer(
+                        id = "CUST-${System.currentTimeMillis() % 10000}",
+                        name = n,
+                        phone = p,
+                        email = e,
+                        address = a,
+                        isGstRegistered = g,
+                        gstin = gstin
+                    )
+                )
+                showAddCustomerSheet = false
+            },
+            onDismiss = { showAddCustomerSheet = false }
+        )
+    }
+
+    // Full Screen Product Overlay Dialog (Step-by-Step match)
+    if (productOverlayOpen) {
+        Dialog(onDismissRequest = { productOverlayOpen = false }) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 24.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Search & Add Products", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark)
+                        IconButton(onClick = { productOverlayOpen = false }) {
+                            Icon(Icons.Default.Close, contentDescription = "Close")
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = productSearchQuery,
+                        onValueChange = { productSearchQuery = it },
+                        placeholder = { Text("Search by product name or SKU...", color = TextLight, fontSize = 13.sp) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryBlue) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = textFieldColors,
+                        shape = RoundedCornerShape(10.dp)
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(filteredProducts) { product ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB))
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(product.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                        Text("₹${String.format("%.2f", product.price)} • Stock: ${product.stockLevel}", fontSize = 12.sp, color = TextMuted)
+                                    }
+                                    Button(
+                                        onClick = { 
+                                            posViewModel.addToCart(product, 1)
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Add")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = { productOverlayOpen = false },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    ) {
+                        Text("Continue to Cart")
+                    }
+                }
+            }
+        }
+    }
+
+    // Checkout Bottom Sheet
     if (showCheckoutSheet) {
         CheckoutBottomSheet(
             cartItems = cart,
@@ -261,14 +521,7 @@ fun PosScreen(
         )
     }
 
-    if (showBarcodeSheet) {
-        BarcodeBottomSheet(
-            products = products,
-            onScanProduct = { prod -> posViewModel.addToCart(prod) },
-            onDismiss = { posViewModel.setShowBarcodeSheet(false) }
-        )
-    }
-
+    // Success Invoice Modal
     if (showInvoiceModal && lastCompletedSale != null) {
         InvoiceDialog(
             sale = lastCompletedSale!!,
@@ -276,148 +529,3 @@ fun PosScreen(
         )
     }
 }
-
-@Composable
-fun ProductCard(
-    product: Product,
-    onAddToCart: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
-    ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Surface(
-                    color = SecondaryTealLight,
-                    shape = RoundedCornerShape(6.dp),
-                    modifier = Modifier.weight(1f, fill = false)
-                ) {
-                    Text(
-                        text = product.category ?: "General",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = SecondaryTeal,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(4.dp))
-
-                Text(
-                    text = "Stock: ${product.stockLevel}",
-                    fontSize = 11.sp,
-                    color = if (product.stockLevel <= 5) StatusError else StatusSuccess,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.wrapContentWidth()
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = product.name,
-                fontWeight = FontWeight.Bold,
-                fontSize = 14.sp,
-                color = TextDark,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            if (!product.sku.isNullOrBlank()) {
-                Text(
-                    text = "SKU: ${product.sku}",
-                    fontSize = 11.sp,
-                    color = TextLight
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "₹${String.format("%.2f", product.price)}",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Black,
-                    color = PrimaryBlue
-                )
-
-                IconButton(
-                    onClick = onAddToCart,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(PrimaryBlue, RoundedCornerShape(10.dp))
-                ) {
-                    Icon(
-                        Icons.Default.Add,
-                        contentDescription = "Add to Cart",
-                        tint = Color.White
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun FloatingCartBar(
-    itemCount: Int,
-    finalTotal: Double,
-    onCheckoutClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = PrimaryBlue),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "$itemCount item(s) selected",
-                    color = Color.White.copy(alpha = 0.8f),
-                    fontSize = 12.sp
-                )
-                Text(
-                    text = "₹${String.format("%.2f", finalTotal)}",
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Black
-                )
-            }
-
-            Button(
-                onClick = onCheckoutClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = PrimaryBlue
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text("CHECKOUT", fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(6.dp))
-                Icon(Icons.Default.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
-            }
-        }
-    }
-}
-
