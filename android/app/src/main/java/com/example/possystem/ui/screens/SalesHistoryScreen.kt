@@ -40,7 +40,7 @@ fun SalesHistoryScreen(
         } else {
             sales.filter { sale ->
                 sale.invoiceNo.contains(searchQuery, ignoreCase = true) ||
-                sale.customerName.contains(searchQuery, ignoreCase = true)
+                (sale.customerName?.contains(searchQuery, ignoreCase = true) == true)
             }
         }
     }
@@ -133,7 +133,7 @@ fun SalesHistoryScreen(
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = "${sale.customerName} • ${sale.paymentMethod}",
+                                    text = "${sale.customerName ?: "Walk-in Customer"} • ${sale.paymentMethod}",
                                     fontSize = 13.sp,
                                     color = TextMuted
                                 )
