@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.example.possystem.ui.viewmodel.*
 
 enum class MoreSubScreen {
-    GRID, LEADS, CUSTOMERS, PURCHASES, REPORTS, SETTINGS
+    GRID, LEADS, CUSTOMERS, PURCHASES, REPORTS, SETTINGS, PROJECTS, SALES
 }
 
 @Composable
@@ -30,6 +30,7 @@ fun MoreScreen(
     reportsViewModel: ReportsViewModel,
     usersSettingsViewModel: UsersSettingsViewModel,
     leadsViewModel: LeadsViewModel? = null,
+    projectsViewModel: ProjectsViewModel? = null,
     authViewModel: AuthViewModel
 ) {
     var subScreen by remember { mutableStateOf(MoreSubScreen.GRID) }
@@ -52,6 +53,8 @@ fun MoreScreen(
                         MoreSubScreen.PURCHASES -> "Purchases & Restock"
                         MoreSubScreen.REPORTS -> "Reports & Analytics"
                         MoreSubScreen.SETTINGS -> "Settings & Users"
+                        MoreSubScreen.PROJECTS -> "Projects & Worksites"
+                        MoreSubScreen.SALES -> "Sales & Invoices"
                         else -> ""
                     },
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
@@ -69,6 +72,12 @@ fun MoreScreen(
                     MoreSubScreen.PURCHASES -> PurchasesScreen(purchasesViewModel = purchasesViewModel)
                     MoreSubScreen.REPORTS -> ReportsScreen(reportsViewModel = reportsViewModel)
                     MoreSubScreen.SETTINGS -> UsersSettingsScreen(usersSettingsViewModel = usersSettingsViewModel, authViewModel = authViewModel)
+                    MoreSubScreen.PROJECTS -> {
+                        if (projectsViewModel != null) {
+                            ProjectsScreen(projectsViewModel = projectsViewModel)
+                        }
+                    }
+                    MoreSubScreen.SALES -> SalesHistoryScreen(reportsViewModel = reportsViewModel)
                     else -> {}
                 }
             }
@@ -92,11 +101,13 @@ fun MoreScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             val menuItems = listOf(
-                MoreMenuItem("Leads & Prospects", "Track sales leads & pipeline", Icons.Default.FilterList, Color(0xFFEC4899), MoreSubScreen.LEADS),
-                MoreMenuItem("Customers Directory", "Manage customer profiles & debts", Icons.Default.People, Color(0xFF3B82F6), MoreSubScreen.CUSTOMERS),
+                MoreMenuItem("Sales History", "View past invoices & share", Icons.Default.ReceiptLong, Color(0xFF3B82F6), MoreSubScreen.SALES),
                 MoreMenuItem("Purchases Orders", "Supplier restock & PO logs", Icons.Default.ShoppingBag, Color(0xFF10B981), MoreSubScreen.PURCHASES),
-                MoreMenuItem("Reports & Analytics", "Financial revenue & sales charts", Icons.Default.BarChart, Color(0xFF8B5CF6), MoreSubScreen.REPORTS),
-                MoreMenuItem("Settings & Users", "API URL, company profile & user roles", Icons.Default.Settings, Color(0xFFF59E0B), MoreSubScreen.SETTINGS)
+                MoreMenuItem("Leads & Prospects", "Track sales leads & pipeline", Icons.Default.FilterList, Color(0xFFEC4899), MoreSubScreen.LEADS),
+                MoreMenuItem("Customers Directory", "Manage customer profiles & debts", Icons.Default.People, Color(0xFF8B5CF6), MoreSubScreen.CUSTOMERS),
+                MoreMenuItem("Projects & Sites", "Manage worksites & tasks", Icons.Default.Assignment, Color(0xFF06B6D4), MoreSubScreen.PROJECTS),
+                MoreMenuItem("Reports & Charts", "Financial revenue & analytics", Icons.Default.BarChart, Color(0xFFF59E0B), MoreSubScreen.REPORTS),
+                MoreMenuItem("Settings & Users", "API setup & user roles", Icons.Default.Settings, Color(0xFF6B7280), MoreSubScreen.SETTINGS)
             )
 
             LazyVerticalGrid(

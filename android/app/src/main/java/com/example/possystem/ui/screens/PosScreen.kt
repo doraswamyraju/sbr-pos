@@ -296,22 +296,28 @@ fun ProductCard(
             ) {
                 Surface(
                     color = SecondaryTealLight,
-                    shape = RoundedCornerShape(6.dp)
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.weight(1f, fill = false)
                 ) {
                     Text(
                         text = product.category ?: "General",
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = SecondaryTeal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                 }
+
+                Spacer(modifier = Modifier.width(4.dp))
 
                 Text(
                     text = "Stock: ${product.stockLevel}",
                     fontSize = 11.sp,
                     color = if (product.stockLevel <= 5) StatusError else StatusSuccess,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.wrapContentWidth()
                 )
             }
 

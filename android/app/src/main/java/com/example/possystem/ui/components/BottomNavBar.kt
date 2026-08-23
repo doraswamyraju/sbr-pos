@@ -24,7 +24,7 @@ enum class NavTab(
     POS("POS", Icons.Filled.ShoppingCart, Icons.Outlined.ShoppingCart),
     INVENTORY("Inventory", Icons.Filled.Inventory, Icons.Outlined.Inventory2),
     SCANNER("Scanner", Icons.Filled.QrCodeScanner, Icons.Outlined.QrCodeScanner),
-    PROJECTS("Projects", Icons.Filled.Assignment, Icons.Outlined.Assignment),
+    PURCHASES("Purchases", Icons.Filled.ShoppingBag, Icons.Outlined.ShoppingBag),
     MORE("More", Icons.Filled.Grid3x3, Icons.Outlined.Grid3x3)
 }
 
