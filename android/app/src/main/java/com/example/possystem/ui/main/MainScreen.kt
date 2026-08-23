@@ -67,7 +67,16 @@ fun MainScreen(
                 BottomNavBar(
                     currentTab = currentTab,
                     onTabSelected = { tab ->
-                        currentTab = tab
+                        if (tab == NavTab.SALES) {
+                            currentTab = tab
+                            if (selectedCustomer != null) {
+                                triggerScanner()
+                            } else {
+                                showCustomerSelect = true
+                            }
+                        } else {
+                            currentTab = tab
+                        }
                     },
                     cartItemCount = cart.sumOf { it.quantity }
                 )

@@ -65,7 +65,7 @@ fun BottomNavBar(
                             .offset(y = (-14).dp)
                             .size(56.dp)
                             .shadow(6.dp, CircleShape)
-                            .background(if (isSelected) PrimaryBlue else Color(0xFFF3F4F6), CircleShape)
+                            .background(if (isSelected) PrimaryBlue else Color.White, CircleShape)
                             .clip(CircleShape)
                             .clickable { onTabSelected(tab) },
                         contentAlignment = Alignment.Center
@@ -90,9 +90,9 @@ fun BottomNavBar(
                             }
                         }
                         Icon(
-                            imageVector = Icons.Default.AttachMoney,
+                            imageVector = Icons.Default.QrCodeScanner,
                             contentDescription = "Sales",
-                            tint = if (isSelected) Color.White else Color.Gray,
+                            tint = if (isSelected) Color.White else PrimaryBlue,
                             modifier = Modifier.size(32.dp)
                         )
                     }
