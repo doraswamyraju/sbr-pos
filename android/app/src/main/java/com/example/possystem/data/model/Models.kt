@@ -149,3 +149,12 @@ data class LoginResponse(
     val user: User? = null
 )
 
+data class Supplier(
+    val id: String = "",
+    @SerializedName("supplier_name") val supplierName: String = "",
+    @SerializedName("contact_name") val contactName: String? = null,
+    @SerializedName("phone_number") val phoneNumber: String? = null,
+    val email: String? = null,
+    val address: String? = null
+)
+

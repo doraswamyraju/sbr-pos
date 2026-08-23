@@ -90,4 +90,10 @@ object MockDataProvider {
         User("2", "sales", "Sales Officer", "sales@sbrpos.com", "user", false),
         User("3", "tech", "Installation Lead", "tech@sbrpos.com", "user", false)
     )
+
+    fun getSampleSuppliers(): List<Supplier> = listOf(
+        Supplier("SUP-01", "SunPower Solar Ltd", "Venkatesh Rao", "+91 99000 88877", "venkat@sunpower.com", "IDA Jeedimetla, Hyderabad"),
+        Supplier("SUP-02", "Pentair Water Tech", "Kiran Varma", "+91 98888 77766", "kiran.varma@pentair.com", "Whitefield, Bangalore"),
+        Supplier("SUP-03", "Delta Control Systems", "Rajesh Sharma", "+91 97777 66655", "sharma@deltacontrols.com", "GIDC, Ahmedabad")
+    )
 }

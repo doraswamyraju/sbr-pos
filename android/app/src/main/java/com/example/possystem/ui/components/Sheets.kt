@@ -875,3 +875,98 @@ fun BarcodeBottomSheet(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddSupplierBottomSheet(
+    supplier: Supplier? = null,
+    onSave: (name: String, contact: String, phone: String, email: String, address: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(supplier?.supplierName ?: "") }
+    var contact by remember { mutableStateOf(supplier?.contactName ?: "") }
+    var phone by remember { mutableStateOf(supplier?.phoneNumber ?: "") }
+    var email by remember { mutableStateOf(supplier?.email ?: "") }
+    var address by remember { mutableStateOf(supplier?.address ?: "") }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .navigationBarsPadding()
+        ) {
+            Text(
+                text = if (supplier == null) "Add New Supplier" else "Edit Supplier",
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Supplier Name *") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedTextField(
+                value = contact,
+                onValueChange = { contact = it },
+                label = { Text("Contact Person Name") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = { Text("Phone Number") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email Address") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            OutlinedTextField(
+                value = address,
+                onValueChange = { address = it },
+                label = { Text("Physical Address") },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 3
+            )
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Button(
+                onClick = {
+                    if (name.isNotBlank()) {
+                        onSave(name, contact, phone, email, address)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                enabled = name.isNotBlank()
+            ) {
+                Text(text = if (supplier == null) "Add Supplier" else "Save Changes")
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+

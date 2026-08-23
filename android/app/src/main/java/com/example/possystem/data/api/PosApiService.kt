@@ -92,4 +92,22 @@ interface PosApiService {
 
     @GET("user_settings.php")
     suspend fun getSettings(): Response<UserSettings>
+
+    @GET("suppliers.php")
+    suspend fun getSuppliers(): Response<List<Supplier>>
+
+    @POST("suppliers.php")
+    suspend fun addSupplier(
+        @Body supplier: Supplier
+    ): Response<ApiResponse<Supplier>>
+
+    @PUT("suppliers.php")
+    suspend fun updateSupplier(
+        @Body supplier: Supplier
+    ): Response<ApiResponse<Supplier>>
+
+    @DELETE("suppliers.php")
+    suspend fun deleteSupplier(
+        @Query("id") id: String
+    ): Response<ApiResponse<Unit>>
 }

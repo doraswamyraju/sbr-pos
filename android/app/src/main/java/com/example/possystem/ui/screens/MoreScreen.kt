@@ -20,7 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.example.possystem.ui.viewmodel.*
 
 enum class MoreSubScreen {
-    GRID, LEADS, CUSTOMERS, PURCHASES, REPORTS, SETTINGS, PROJECTS, SALES
+    GRID, LEADS, CUSTOMERS, PURCHASES, REPORTS, SETTINGS, PROJECTS, SALES, SUPPLIERS
 }
 
 @Composable
@@ -31,6 +31,7 @@ fun MoreScreen(
     usersSettingsViewModel: UsersSettingsViewModel,
     leadsViewModel: LeadsViewModel? = null,
     projectsViewModel: ProjectsViewModel? = null,
+    suppliersViewModel: SuppliersViewModel? = null,
     authViewModel: AuthViewModel
 ) {
     var subScreen by remember { mutableStateOf(MoreSubScreen.GRID) }
@@ -55,6 +56,7 @@ fun MoreScreen(
                         MoreSubScreen.SETTINGS -> "Settings & Users"
                         MoreSubScreen.PROJECTS -> "Projects & Worksites"
                         MoreSubScreen.SALES -> "Sales & Invoices"
+                        MoreSubScreen.SUPPLIERS -> "Suppliers Directory"
                         else -> ""
                     },
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
@@ -78,6 +80,11 @@ fun MoreScreen(
                         }
                     }
                     MoreSubScreen.SALES -> SalesHistoryScreen(reportsViewModel = reportsViewModel)
+                    MoreSubScreen.SUPPLIERS -> {
+                        if (suppliersViewModel != null) {
+                            SuppliersScreen(suppliersViewModel = suppliersViewModel)
+                        }
+                    }
                     else -> {}
                 }
             }
@@ -105,6 +112,7 @@ fun MoreScreen(
                 MoreMenuItem("Purchases Orders", "Supplier restock & PO logs", Icons.Default.ShoppingBag, Color(0xFF10B981), MoreSubScreen.PURCHASES),
                 MoreMenuItem("Leads & Prospects", "Track sales leads & pipeline", Icons.Default.FilterList, Color(0xFFEC4899), MoreSubScreen.LEADS),
                 MoreMenuItem("Customers Directory", "Manage customer profiles & debts", Icons.Default.People, Color(0xFF8B5CF6), MoreSubScreen.CUSTOMERS),
+                MoreMenuItem("Suppliers List", "Manage vendor & factory details", Icons.Default.LocalShipping, Color(0xFF10B981), MoreSubScreen.SUPPLIERS),
                 MoreMenuItem("Projects & Sites", "Manage worksites & tasks", Icons.Default.Assignment, Color(0xFF06B6D4), MoreSubScreen.PROJECTS),
                 MoreMenuItem("Reports & Charts", "Financial revenue & analytics", Icons.Default.BarChart, Color(0xFFF59E0B), MoreSubScreen.REPORTS),
                 MoreMenuItem("Settings & Users", "API setup & user roles", Icons.Default.Settings, Color(0xFF6B7280), MoreSubScreen.SETTINGS)

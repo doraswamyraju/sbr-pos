@@ -31,6 +31,7 @@ fun MainScreen(
     val purchasesViewModel: PurchasesViewModel = viewModel()
     val reportsViewModel: ReportsViewModel = viewModel()
     val usersSettingsViewModel: UsersSettingsViewModel = viewModel()
+    val suppliersViewModel: SuppliersViewModel = viewModel()
 
     val currentUser by authViewModel.currentUser.collectAsState()
     var currentTab by remember { mutableStateOf(NavTab.POS) }
@@ -97,6 +98,7 @@ fun MainScreen(
                         usersSettingsViewModel = usersSettingsViewModel,
                         leadsViewModel = leadsViewModel,
                         projectsViewModel = projectsViewModel,
+                        suppliersViewModel = suppliersViewModel,
                         authViewModel = authViewModel
                     )
                 }
