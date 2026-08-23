@@ -34,7 +34,7 @@ fun MainScreen(
     val suppliersViewModel: SuppliersViewModel = viewModel()
 
     val currentUser by authViewModel.currentUser.collectAsState()
-    var currentTab by remember { mutableStateOf(NavTab.POS) }
+    var currentTab by remember { mutableStateOf(NavTab.DASHBOARD) }
     val cart by posViewModel.cart.collectAsState()
     val selectedCustomer by posViewModel.selectedCustomer.collectAsState()
 
@@ -67,15 +67,7 @@ fun MainScreen(
                 BottomNavBar(
                     currentTab = currentTab,
                     onTabSelected = { tab ->
-                        if (tab == NavTab.SCANNER) {
-                            if (selectedCustomer != null) {
-                                triggerScanner()
-                            } else {
-                                showCustomerSelect = true
-                            }
-                        } else {
-                            currentTab = tab
-                        }
+                        currentTab = tab
                     },
                     cartItemCount = cart.sumOf { it.quantity }
                 )
@@ -87,10 +79,10 @@ fun MainScreen(
                     .padding(paddingValues)
             ) {
                 when (currentTab) {
-                    NavTab.POS -> PosScreen(posViewModel = posViewModel)
-                    NavTab.INVENTORY -> InventoryScreen(inventoryViewModel = inventoryViewModel)
-                    NavTab.SCANNER -> { /* Action tab, handled on click */ }
-                    NavTab.PURCHASES -> PurchasesScreen(purchasesViewModel = purchasesViewModel)
+                    NavTab.DASHBOARD -> InventoryScreen(inventoryViewModel = inventoryViewModel)
+                    NavTab.LEADS -> LeadsScreen(leadsViewModel = leadsViewModel, customersViewModel = customersViewModel)
+                    NavTab.SALES -> PosScreen(posViewModel = posViewModel)
+                    NavTab.CUSTOMERS -> CustomersScreen(customersViewModel = customersViewModel)
                     NavTab.MORE -> MoreScreen(
                         customersViewModel = customersViewModel,
                         purchasesViewModel = purchasesViewModel,

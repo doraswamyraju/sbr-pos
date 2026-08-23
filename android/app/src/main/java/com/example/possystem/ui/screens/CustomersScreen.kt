@@ -1,8 +1,12 @@
 package com.example.possystem.ui.screens
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,10 +15,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.possystem.R
 import com.example.possystem.data.model.Customer
+import com.example.possystem.theme.*
 import com.example.possystem.ui.components.AddCustomerBottomSheet
 import com.example.possystem.ui.viewmodel.CustomersViewModel
 
@@ -30,55 +37,144 @@ fun CustomersScreen(
         if (searchQuery.isBlank()) customers
         else customers.filter { c ->
             c.name.contains(searchQuery, ignoreCase = true) ||
-                    (c.phone?.contains(searchQuery) == true) ||
-                    (c.email?.contains(searchQuery, ignoreCase = true) == true)
+            (c.phone?.contains(searchQuery) == true) ||
+            (c.email?.contains(searchQuery, ignoreCase = true) == true)
         }
     }
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { customersViewModel.setShowAddCustomerSheet(true) },
-                containerColor = MaterialTheme.colorScheme.primary
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF3F4F6))
+    ) {
+        // Logo Header Bar (Matches Web Mobile View)
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = Color.White,
+            shadowElevation = 2.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.PersonAdd, contentDescription = "Add Customer", tint = MaterialTheme.colorScheme.onPrimary)
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "Logo",
+                    modifier = Modifier.size(36.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Sri Balaji Renewables",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = TextDark
+                    )
+                    Text(
+                        text = "POS",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = PrimaryBlue
+                    )
+                }
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.padding(end = 8.dp)
+                ) {
+                    Text("Admin User", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = TextDark)
+                    Text("admin", fontSize = 10.sp, color = TextMuted)
+                }
+                Surface(
+                    color = PrimaryBlue,
+                    shape = CircleShape,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("A", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    Icons.Default.ExitToApp,
+                    contentDescription = "Logout",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
-    ) { padding ->
-        Column(
+
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "Customers Directory",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-            )
+            // Title & Add Customer Button Row
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Customers",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                    Button(
+                        onClick = { customersViewModel.setShowAddCustomerSheet(true) },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Add Customer", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                }
+            }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            // Search Bar
+            item {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { customersViewModel.setSearchQuery(it) },
+                    placeholder = { Text("Search customers by name, phone, or e...", color = TextLight, fontSize = 13.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = TextDark,
+                        unfocusedTextColor = TextDark,
+                        focusedBorderColor = PrimaryBlue,
+                        unfocusedBorderColor = BorderSubtle
+                    )
+                )
+            }
 
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { customersViewModel.setSearchQuery(it) },
-                placeholder = { Text("Search by name, phone or email...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
+            // Customer Cards
             if (filteredCustomers.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No customers found.", color = Color.Gray)
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No customers found.", color = TextMuted)
+                    }
                 }
             } else {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    items(filteredCustomers) { customer ->
-                        CustomerCardItem(customer = customer)
-                    }
+                items(filteredCustomers) { customer ->
+                    CustomerDashboardCard(
+                        customer = customer,
+                        onEdit = {},
+                        onDelete = {}
+                    )
                 }
             }
         }
@@ -93,76 +189,101 @@ fun CustomersScreen(
 }
 
 @Composable
-fun CustomerCardItem(customer: Customer) {
+fun CustomerDashboardCard(
+    customer: Customer,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(text = customer.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                if (customer.balance > 0) {
-                    Surface(color = Color(0xFFFEE2E2), shape = RoundedCornerShape(6.dp)) {
-                        Text(
-                            text = "Due: ₹${String.format("%.2f", customer.balance)}",
-                            color = Color(0xFFDC2626),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+        Column {
+            // Thin Blue Top Border
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(PrimaryBlue)
+            )
+            Column(modifier = Modifier.padding(14.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = customer.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        color = TextDark,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit",
+                            tint = PrimaryBlue,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable { onEdit() }
+                        )
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = StatusError,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .clickable { onDelete() }
                         )
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = customer.phone ?: "No phone", fontSize = 13.sp, color = Color.DarkGray)
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "GST Registered: ",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Gray
-                )
-                Text(
-                    text = if (customer.isGstRegistered == 1) "Yes" else "No",
-                    fontSize = 12.sp,
-                    color = if (customer.isGstRegistered == 1) Color(0xFF10B981) else Color(0xFFEF4444),
-                    fontWeight = FontWeight.Bold
-                )
-                if (customer.isGstRegistered == 1 && !customer.gstin.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "GSTIN: ${customer.gstin}",
-                        fontSize = 12.sp,
-                        color = Color.DarkGray,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                Text(customer.phone ?: "No phone", fontSize = 13.sp, color = TextMuted)
+                if (!customer.email.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(customer.email, fontSize = 13.sp, color = TextMuted)
                 }
-            }
 
-            if (!customer.email.isNullOrBlank()) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
-                    Icon(Icons.Default.Email, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Gray)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(text = customer.email, fontSize = 13.sp, color = Color.DarkGray)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // GST Badge
+                    val isGst = customer.isGstRegistered == 1
+                    Surface(
+                        color = if (isGst) Color(0xFFD1FAE5) else Color(0xFFFEE2E2),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = "GST Registered: ${if (isGst) "Yes" else "No"}",
+                            color = if (isGst) Color(0xFF065F46) else Color(0xFF991B1B),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+
+                    // Status Badge
+                    Surface(
+                        color = Color(0xFFD1FAE5),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = "Status: Active",
+                            color = Color(0xFF065F46),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
                 }
-            }
-
-            if (!customer.address.isNullOrBlank()) {
-                Text(text = customer.address, fontSize = 12.sp, color = Color.Gray, modifier = Modifier.padding(top = 4.dp))
             }
         }
     }
