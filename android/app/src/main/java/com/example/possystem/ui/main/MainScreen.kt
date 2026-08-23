@@ -131,7 +131,7 @@ fun MainScreen(
                     posViewModel.addToCart(scannedProductPending!!, quantity)
                     showQuantityInput = false
                     scannedProductPending = null
-                    currentTab = NavTab.POS
+                    currentTab = NavTab.SALES
                     triggerScanner()
                 },
                 onDismiss = {
