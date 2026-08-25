@@ -526,6 +526,9 @@ fun PosScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(filteredProducts) { product ->
+                            val cartItem = cart.find { it.product.id == product.id }
+                            val quantityInCart = cartItem?.quantity ?: 0
+
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp),
@@ -542,14 +545,47 @@ fun PosScreen(
                                         Text(product.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text("₹${String.format("%.2f", product.price)} • Stock: ${product.stockLevel}", fontSize = 12.sp, color = TextMuted)
                                     }
-                                    Button(
-                                        onClick = { 
-                                            posViewModel.addToCart(product, 1)
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
-                                        shape = RoundedCornerShape(8.dp)
-                                    ) {
-                                        Text("Add")
+                                    
+                                    if (quantityInCart == 0) {
+                                        Button(
+                                            onClick = { 
+                                                posViewModel.addToCart(product, 1)
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                                        ) {
+                                            Text("Add", fontWeight = FontWeight.Bold)
+                                        }
+                                    } else {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            modifier = Modifier
+                                                .background(Color(0xFFEFF6FF), RoundedCornerShape(8.dp))
+                                                .border(1.dp, PrimaryBlue.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                                        ) {
+                                            IconButton(
+                                                onClick = { posViewModel.updateCartQuantity(product.id, quantityInCart - 1) },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Text("-", fontWeight = FontWeight.Bold, color = PrimaryBlue, fontSize = 18.sp)
+                                            }
+                                            Text(
+                                                text = "$quantityInCart",
+                                                fontWeight = FontWeight.Bold,
+                                                color = PrimaryBlue,
+                                                fontSize = 14.sp,
+                                                modifier = Modifier.padding(horizontal = 6.dp)
+                                            )
+                                            IconButton(
+                                                onClick = { posViewModel.updateCartQuantity(product.id, quantityInCart + 1) },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Text("+", fontWeight = FontWeight.Bold, color = PrimaryBlue, fontSize = 18.sp)
+                                            }
+                                        }
                                     }
                                 }
                             }

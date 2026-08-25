@@ -12,22 +12,22 @@ import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.possystem.data.model.Sale
-import android.content.Intent
-import android.widget.Toast
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import com.example.possystem.util.InvoicePdfHelper
+import com.example.possystem.theme.PrimaryBlue
 
 @Composable
 fun InvoiceDialog(
@@ -42,7 +42,9 @@ fun InvoiceDialog(
             shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp,
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
         ) {
             Column(
                 modifier = Modifier.padding(20.dp),
@@ -76,18 +78,19 @@ fun InvoiceDialog(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                        .background(Color(0xFFEFF6FF), RoundedCornerShape(12.dp))
                         .padding(12.dp)
                 ) {
                     Column {
                         Text(
-                            text = "SBR POS SYSTEM",
+                            text = "SRI BALAJI RENEWABLES POS",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
-                            color = MaterialTheme.colorScheme.primary
+                            color = PrimaryBlue
                         )
-                        Text(text = "Invoice: ${sale.invoiceNo}", style = MaterialTheme.typography.bodySmall)
-                        Text(text = "Date: ${sale.date}", style = MaterialTheme.typography.bodySmall)
-                        Text(text = "Customer: ${sale.customerName}", style = MaterialTheme.typography.bodySmall)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(text = "Invoice: ${sale.invoiceNo}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                        Text(text = "Date: ${sale.date}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        Text(text = "Customer: ${sale.customerName ?: "Walk-in Customer"}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                     }
                 }
 
@@ -104,7 +107,7 @@ fun InvoiceDialog(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 180.dp)
+                        .heightIn(max = 160.dp)
                 ) {
                     items(sale.items) { item ->
                         Row(
@@ -118,7 +121,8 @@ fun InvoiceDialog(
                                     text = item.productName,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = "${item.quantity} x ₹${String.format("%.2f", item.price)}",
@@ -169,73 +173,58 @@ fun InvoiceDialog(
                     ) {
                         Text(
                             text = "TOTAL PAID",
-                            fontSize = 16.sp,
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.primary
+                            color = PrimaryBlue
                         )
                         Text(
                             text = "₹${String.format("%.2f", sale.finalAmount)}",
-                            fontSize = 18.sp,
+                            fontSize = 17.sp,
                             fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.primary
+                            color = PrimaryBlue
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
+                // Bottom Action Buttons with explicit sizing & padding to prevent vertical text wrapping
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     OutlinedButton(
                         onClick = { showPrintDialog = true },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Print, contentDescription = null, modifier = Modifier.size(16.dp), tint = PrimaryBlue)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Print", fontSize = 12.sp)
+                        Text("Print", fontSize = 12.sp, color = PrimaryBlue, maxLines = 1, fontWeight = FontWeight.SemiBold)
                     }
+
                     OutlinedButton(
                         onClick = {
-                            val shareText = buildString {
-                                appendLine("=== SRI BALAJI RENEWABLES POS ===")
-                                appendLine("Invoice: ${sale.invoiceNo}")
-                                appendLine("Date: ${sale.date}")
-                                appendLine("Customer: ${sale.customerName}")
-                                appendLine("--------------------------------")
-                                sale.items.forEach { item ->
-                                    appendLine("${item.productName} x ${item.quantity} - ₹${String.format("%.2f", item.total)}")
-                                }
-                                appendLine("--------------------------------")
-                                appendLine("Subtotal: ₹${String.format("%.2f", sale.totalAmount)}")
-                                if (sale.discount > 0) {
-                                    appendLine("Discount: -₹${String.format("%.2f", sale.discount)}")
-                                }
-                                appendLine("TOTAL: ₹${String.format("%.2f", sale.finalAmount)}")
-                                appendLine("Payment: ${sale.paymentMethod}")
-                                appendLine("================================")
-                                appendLine("Thank you for your business!")
-                            }
-                            val sendIntent = Intent().apply {
-                                action = Intent.ACTION_SEND
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                                type = "text/plain"
-                            }
-                            val shareIntent = Intent.createChooser(sendIntent, "Share Invoice")
-                            context.startActivity(shareIntent)
+                            InvoicePdfHelper.shareInvoicePdf(context, sale)
                         },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp), tint = PrimaryBlue)
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Share", fontSize = 12.sp)
+                        Text("Share PDF", fontSize = 12.sp, color = PrimaryBlue, maxLines = 1, fontWeight = FontWeight.SemiBold)
                     }
+
                     Button(
                         onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("Done", fontSize = 12.sp)
+                        Text("Done", fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                     }
                 }
             }
@@ -247,54 +236,57 @@ fun InvoiceDialog(
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = MaterialTheme.colorScheme.surface,
-                modifier = Modifier.fillMaxWidth().padding(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "Select Print Format",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = PrimaryBlue
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(
                         onClick = {
-                            Toast.makeText(context, "Printing A4 Invoice...", Toast.LENGTH_SHORT).show()
                             showPrintDialog = false
+                            InvoicePdfHelper.printInvoice(context, sale)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                        shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text("A4 Format")
+                        Text("A4 Format (Native Printer)", fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(
+                    OutlinedButton(
                         onClick = {
-                            Toast.makeText(context, "Printing 2-inch Thermal Receipt...", Toast.LENGTH_SHORT).show()
                             showPrintDialog = false
+                            InvoicePdfHelper.printInvoice(context, sale)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Text("2\" Thermal Receipt")
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Button(
+                    OutlinedButton(
                         onClick = {
-                            Toast.makeText(context, "Printing 3-inch Thermal Receipt...", Toast.LENGTH_SHORT).show()
                             showPrintDialog = false
+                            InvoicePdfHelper.printInvoice(context, sale)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Text("3\" Thermal Receipt")
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     TextButton(onClick = { showPrintDialog = false }) {
-                        Text("Cancel")
+                        Text("Cancel", color = Color.Gray)
                     }
                 }
             }

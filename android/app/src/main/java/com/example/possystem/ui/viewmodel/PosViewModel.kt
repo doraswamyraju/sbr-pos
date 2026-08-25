@@ -201,11 +201,27 @@ class PosViewModel : ViewModel() {
             items = items
         )
 
+        val request = CreateSaleRequest(
+            userId = 1,
+            customerId = _selectedCustomer.value?.id,
+            customerName = _selectedCustomer.value?.name ?: "Walk-in Customer",
+            totalAmount = subtotal,
+            discount = _discount.value,
+            payableAmount = finalTotal,
+            paymentMode = _paymentMethod.value,
+            paymentMethod = _paymentMethod.value,
+            cartItems = items,
+            items = items
+        )
+
         viewModelScope.launch {
             try {
-                RetrofitClient.apiService.createSale(sale)
+                val response = RetrofitClient.apiService.createSale(request)
+                if (response.isSuccessful) {
+                    loadData()
+                }
             } catch (e: Exception) {
-                // Ignore failure in offline mode
+                e.printStackTrace()
             }
             _lastCompletedSale.value = sale
             _showCheckoutSheet.value = false

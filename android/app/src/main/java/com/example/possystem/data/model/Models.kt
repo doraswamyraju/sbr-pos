@@ -119,6 +119,19 @@ data class Sale(
     val items: List<SaleItem> = emptyList()
 )
 
+data class CreateSaleRequest(
+    @SerializedName("user_id") val userId: Int = 1,
+    @SerializedName("customer_id") val customerId: String? = null,
+    @SerializedName("customer_name") val customerName: String = "Walk-in Customer",
+    @SerializedName("total_amount") val totalAmount: Double = 0.0,
+    val discount: Double = 0.0,
+    @SerializedName("payable_amount") val payableAmount: Double = 0.0,
+    @SerializedName("payment_mode") val paymentMode: String = "Cash",
+    @SerializedName("payment_method") val paymentMethod: String = "Cash",
+    @SerializedName("cart_items") val cartItems: List<SaleItem> = emptyList(),
+    val items: List<SaleItem> = emptyList()
+)
+
 data class ReportSummary(
     @SerializedName("total_revenue") val totalRevenue: Double = 0.0,
     @SerializedName("total_sales") val totalSales: Int = 0,

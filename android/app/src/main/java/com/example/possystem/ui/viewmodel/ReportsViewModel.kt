@@ -38,8 +38,8 @@ class ReportsViewModel : ViewModel() {
                 }
 
                 val salesResponse = RetrofitClient.apiService.getSales()
-                if (salesResponse.isSuccessful && !salesResponse.body().isNullOrEmpty()) {
-                    _recentSales.value = salesResponse.body()!!
+                if (salesResponse.isSuccessful && salesResponse.body()?.data != null) {
+                    _recentSales.value = salesResponse.body()!!.data!!
                 } else {
                     _recentSales.value = MockDataProvider.getSampleSales()
                 }

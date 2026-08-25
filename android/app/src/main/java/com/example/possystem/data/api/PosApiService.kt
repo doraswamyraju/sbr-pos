@@ -59,12 +59,12 @@ interface PosApiService {
     ): Response<ApiResponse<Purchase>>
 
     @GET("sales.php")
-    suspend fun getSales(): Response<List<Sale>>
+    suspend fun getSales(): Response<ApiResponse<List<Sale>>>
 
     @POST("sales.php")
     suspend fun createSale(
-        @Body sale: Sale
-    ): Response<ApiResponse<Sale>>
+        @Body saleRequest: CreateSaleRequest
+    ): Response<ApiResponse<Map<String, Any>>>
 
     @GET("projects.php")
     suspend fun getProjects(): Response<List<Project>>
