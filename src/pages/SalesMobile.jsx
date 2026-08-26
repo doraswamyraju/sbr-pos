@@ -122,15 +122,22 @@ const SalesMobile = (props) => {
 
         {/* Step 2: Add Products */}
         <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-lg text-gray-800">Step 2: Add Products</h3>
-            <div className="flex items-center gap-2">
-              {/* Open full-screen Add Products overlay */}
-              <button disabled={!selectedCustomer} onClick={() => { setProductOverlayOpen(true); setOverlayTab("search"); }} className={`px-4 py-3 rounded-lg ${selectedCustomer ? 'bg-blue-600 text-white shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
-                <FaSearch />
+          <div className="mb-3">
+            <h3 className="font-bold text-lg text-gray-800 mb-2">Step 2: Add Products</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button 
+                disabled={!selectedCustomer} 
+                onClick={() => { setProductOverlayOpen(true); setOverlayTab("search"); }} 
+                className={`flex items-center justify-center gap-2 py-3 px-3 rounded-lg font-semibold text-sm transition-all ${selectedCustomer ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+              >
+                <FaSearch /> Search Product
               </button>
-              <button disabled={!selectedCustomer} onClick={() => { setProductOverlayOpen(true); setOverlayTab("scan"); }} className={`px-4 py-3 rounded-lg ${selectedCustomer ? 'bg-white border text-blue-600 shadow-lg' : 'bg-gray-200 text-gray-400'}`}>
-                <FaBarcode />
+              <button 
+                disabled={!selectedCustomer} 
+                onClick={() => { setProductOverlayOpen(true); setOverlayTab("scan"); }} 
+                className={`flex items-center justify-center gap-2 py-3 px-3 rounded-lg font-semibold text-sm transition-all ${selectedCustomer ? 'bg-white border-2 border-blue-600 text-blue-600 shadow-md hover:bg-blue-50' : 'bg-gray-200 text-gray-400 border border-gray-300 cursor-not-allowed'}`}
+              >
+                <FaBarcode /> Scan Barcode
               </button>
             </div>
           </div>

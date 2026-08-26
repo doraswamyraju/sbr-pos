@@ -8,10 +8,10 @@ import { FaPrint, FaBluetoothB, FaFileInvoice, FaShareAlt } from "react-icons/fa
 const InvoiceModal = ({ sale, onClose, onNewSale }) => {
   const [printerType, setPrinterType] = useState('58mm');
   const [companyInfo, setCompanyInfo] = useState({
-    name: 'Sri Balaji Renewables POS',
-    address: 'Main Road, Commercial Center',
-    phone: '+91 99999 99999',
-    gstin: ''
+    name: 'Sri Balaji Renewables',
+    address: 'No: 240, Netaji Rd, near Railway Station, Royal Nagar, Tirupati, Andhra Pradesh 517501',
+    phone: '+91 98490 99800',
+    gstin: '37AGQPC5310B1ZV'
   });
 
   useEffect(() => {

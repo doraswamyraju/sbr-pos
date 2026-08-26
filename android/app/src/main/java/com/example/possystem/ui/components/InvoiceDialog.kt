@@ -83,7 +83,7 @@ fun InvoiceDialog(
                 ) {
                     Column {
                         Text(
-                            text = "SRI BALAJI RENEWABLES POS",
+                            text = "SRI BALAJI RENEWABLES",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Black),
                             color = PrimaryBlue
                         )
@@ -118,7 +118,7 @@ fun InvoiceDialog(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = item.productName,
+                                    text = item.displayProductName,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
                                     maxLines = 1,

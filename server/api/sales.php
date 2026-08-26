@@ -57,12 +57,12 @@ function getTableColumns($conn, $dbName, $tableName) {
 function fetchCompanyInfo($conn) {
     global $dbname;
     $defaults = [
-        'company_name' => 'Company Name',
-        'address' => '',
+        'company_name' => 'Sri Balaji Renewables',
+        'address' => 'No: 240, Netaji Rd, near Railway Station, Royal Nagar, Tirupati, Andhra Pradesh 517501',
         'address_line2' => '',
-        'phone_number' => '',
-        'email' => '',
-        'gstin' => '',
+        'phone_number' => '9849099800',
+        'email' => 'hello@sribalajirenewables.com',
+        'gstin' => '37AGQPC5310B1ZV',
         'logo_path' => null,
         'default_print_format' => 'A4'
     ];
@@ -92,7 +92,7 @@ function fetchCompanyInfo($conn) {
 }
 
 function buildReceiptHtmlWithCompany($saleRow, $items, $company) {
-    $company_name = htmlspecialchars($company['company_name'] ?? 'Company Name');
+    $company_name = htmlspecialchars($company['company_name'] ?? 'Sri Balaji Renewables');
     $address = htmlspecialchars($company['address'] ?? '');
     $address2 = htmlspecialchars($company['address_line2'] ?? '');
     $phone = htmlspecialchars($company['phone_number'] ?? '');
@@ -105,12 +105,14 @@ function buildReceiptHtmlWithCompany($saleRow, $items, $company) {
     $customer_gst = htmlspecialchars($saleRow['gst_number'] ?? '');
 
     $items_html = '';
+    $idx = 1;
     foreach ($items as $it) {
-        $iname = htmlspecialchars($it['product_name'] ?? $it['name'] ?? $it['title'] ?? '');
+        $iname = htmlspecialchars($it['product_name'] ?? $it['name'] ?? $it['title'] ?? 'Item');
         $iqty = intval($it['quantity'] ?? $it['qty'] ?? 1);
-        $iprice = number_format(floatval($it['price'] ?? $it['unit_price'] ?? 0), 2);
-        $itotal = number_format($iqty * floatval($it['price'] ?? $it['unit_price'] ?? 0), 2);
-        $items_html .= "<tr><td style='padding:8px;border:1px solid #ddd'>{$iname}</td><td style='padding:8px;border:1px solid #ddd;text-align:center'>{$iqty}</td><td style='padding:8px;border:1px solid #ddd;text-align:right'>₹{$iprice}</td><td style='padding:8px;border:1px solid #ddd;text-align:right'>₹{$itotal}</td></tr>";
+        $iprice = floatval($it['price'] ?? $it['unit_price'] ?? 0);
+        $itotal = $iqty * $iprice;
+        $items_html .= "<tr><td style='padding:8px;border:1px solid #e2e8f0;text-align:center'>{$idx}</td><td style='padding:8px;border:1px solid #e2e8f0'>{$iname}</td><td style='padding:8px;border:1px solid #e2e8f0;text-align:center'>{$iqty}</td><td style='padding:8px;border:1px solid #e2e8f0;text-align:right'>₹" . number_format($iprice, 2) . "</td><td style='padding:8px;border:1px solid #e2e8f0;text-align:right'>₹" . number_format($itotal, 2) . "</td></tr>";
+        $idx++;
     }
 
     $total = number_format(floatval($saleRow['total_amount'] ?? $saleRow['total'] ?? 0), 2);
@@ -119,14 +121,14 @@ function buildReceiptHtmlWithCompany($saleRow, $items, $company) {
 
     $logo_html = !empty($logo_path) ? "<img src='https://rajugariventures.com/sbr-pos/server/{$logo_path}' alt='Company Logo' style='max-height: 80px; max-width: 150px;'/>" : "";
 
-    $receipt = "<!doctype html><html><head><meta charset='utf-8'><title>{$invoiceType}</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#222;margin:18px}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{padding:8px;border:1px solid #ddd}th{background:#f7f7f7}.company{display:flex;justify-content:space-between;align-items:flex-start}.company .left{max-width:60%}.company .right{text-align:right}.summary{float:right;width:300px;margin-top:12px}</style></head><body>";
-    $receipt .= "<div class='company'><div class='left'>{$logo_html}<div style='font-weight:700;font-size:18px; margin-top: 10px;'>{$company_name}</div><div style='font-size:12px;margin-top:6px'>{$address}" . ($address2 ? "<br>{$address2}" : "") . "</div><div style='font-size:12px;margin-top:6px'>Phone: {$phone} " . ($email ? " • {$email}" : "") . "</div>" . ($gst ? "<div style='font-size:12px;margin-top:6px'>GST: {$gst}</div>" : "") . "</div><div class='right'><div><strong>{$invoiceType} #:</strong> " . htmlspecialchars($saleRow['id'] ?? $saleRow['sale_id'] ?? $saleRow['invoice_id'] ?? '') . "</div><div><strong>Date:</strong> " . htmlspecialchars($saleRow['created_at'] ?? $saleRow['sale_date'] ?? date('Y-m-d H:i:s')) . "</div></div></div>";
+    $receipt = "<!doctype html><html><head><meta charset='utf-8'><title>{$invoiceType} #" . htmlspecialchars($saleRow['id'] ?? '') . "</title><style>body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#1e293b;margin:0;padding:20px;background:#fff}.invoice-card{width:100%;max-width:800px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;padding:24px;box-sizing:border-box}table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px}th,td{padding:10px;border:1px solid #cbd5e1}th{background:#f1f5f9;text-align:left;font-weight:700;color:#334155}.company{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2563eb;padding-bottom:16px}.company .title{font-size:24px;font-weight:800;color:#1e40af;margin:0}.company .sub{font-size:12px;color:#64748b;margin-top:4px}.inv-meta{text-align:right}.inv-id{font-size:20px;font-weight:700;color:#0f172a}.bill-to{margin-top:20px;background:#f8fafc;padding:12px;border-radius:8px;font-size:13px;border:1px solid #e2e8f0}.summary-table{margin-top:20px;width:280px;margin-left:auto;font-size:13px;border:none}.summary-table td{padding:6px 10px;text-align:right;border:none}.total-row{font-size:16px;font-weight:800;color:#1e40af;border-top:2px solid #2563eb !important}</style></head><body>";
+    $receipt .= "<div class='invoice-card'><div class='company'><div>{$logo_html}<h1 class='title'>{$company_name}</h1><div class='sub'>{$address}" . ($address2 ? "<br>{$address2}" : "") . "</div><div class='sub'>Phone: {$phone}" . ($email ? " | Email: {$email}" : "") . ($gst ? " | GSTIN: {$gst}" : "") . "</div></div><div class='inv-meta'><div class='inv-id'>{$invoiceType} #" . htmlspecialchars($saleRow['id'] ?? $saleRow['sale_id'] ?? $saleRow['invoice_id'] ?? '') . "</div><div style='font-size:12px;color:#64748b;margin-top:4px'>Date: " . htmlspecialchars($saleRow['created_at'] ?? $saleRow['sale_date'] ?? date('Y-m-d H:i:s')) . "</div></div></div>";
     
-    $receipt .= "<div style='margin-top:16px;'><strong>Bill To:</strong><br/><div>{$customer_name}</div>" . (!empty($customer_gst) ? "<div>GSTIN: {$customer_gst}</div>" : "") . "</div>";
+    $receipt .= "<div class='bill-to'><strong>Bill To:</strong> " . htmlspecialchars($customer_name) . (!empty($customer_gst) ? "<br/><strong>GSTIN:</strong> " . htmlspecialchars($customer_gst) : "") . "</div>";
     
-    $receipt .= "<table><thead><tr><th>Item</th><th style='width:80px'>Qty</th><th style='width:120px;text-align:right'>Rate</th><th style='width:120px;text-align:right'>Total</th></tr></thead><tbody>{$items_html}</tbody></table>";
-    $receipt .= "<div class='summary'><table><tr><td>Subtotal</td><td style='text-align:right'>₹{$total}</td></tr><tr><td>Discount</td><td style='text-align:right'>₹{$discount}</td></tr><tr><td><strong>Payable</strong></td><td style='text-align:right'><strong>₹{$payable}</strong></td></tr></table></div>";
-    $receipt .= "<div style='clear:both;margin-top:40px;text-align:center;color:#666'>Thank you for your business!</div></body></html>";
+    $receipt .= "<table><thead><tr><th style='width:40px;text-align:center'>#</th><th>Item Description</th><th style='width:60px;text-align:center'>Qty</th><th style='width:100px;text-align:right'>Price</th><th style='width:110px;text-align:right'>Total</th></tr></thead><tbody>{$items_html}</tbody></table>";
+    $receipt .= "<table class='summary-table'><tr><td>Subtotal:</td><td>₹{$total}</td></tr><tr><td>Discount:</td><td>₹{$discount}</td></tr><tr class='total-row'><td>Grand Total:</td><td>₹{$payable}</td></tr></table>";
+    $receipt .= "<div style='clear:both;margin-top:40px;text-align:center;color:#94a3b8;font-size:12px;border-top:1px solid #f1f5f9;padding-top:12px'>Thank you for your business!</div></div></body></html>";
     return $receipt;
 }
 
@@ -174,7 +176,7 @@ if ($method === 'GET') {
                     }
                 }
                 if ($linkCol) {
-                    $stmtItems = $conn->prepare("SELECT si.*, p.name as product_name FROM `{$foundItemsTable}` si JOIN `products` p ON si.product_id = p.id WHERE `$linkCol` = ?");
+                    $stmtItems = $conn->prepare("SELECT si.*, COALESCE(NULLIF(p.name, ''), si.product_name, si.name, 'Item') as product_name FROM `{$foundItemsTable}` si LEFT JOIN `products` p ON si.product_id = p.id WHERE `$linkCol` = ?");
                     $stmtItems->bind_param("i", $saleId);
                     $stmtItems->execute();
                     $resultItems = $stmtItems->get_result();
@@ -205,10 +207,19 @@ if ($method === 'GET') {
             $tmp = json_decode($data['cart_items'], true);
             if (is_array($tmp)) $data['cart_items'] = $tmp;
         }
+        if (isset($data['items']) && is_string($data['items'])) {
+            $tmp = json_decode($data['items'], true);
+            if (is_array($tmp)) $data['items'] = $tmp;
+        }
     }
     if (!is_array($data)) respond(400, ['success' => false, 'message' => 'Invalid payload']);
-    if (!isset($data['user_id']) || !isset($data['total_amount']) || !isset($data['cart_items'])) {
-        respond(400, ['success' => false, 'message' => 'Missing required fields: user_id, total_amount, cart_items']);
+    
+    $cartItemsList = $data['cart_items'] ?? $data['items'] ?? [];
+    if (!isset($data['total_amount']) || empty($cartItemsList)) {
+        respond(400, ['success' => false, 'message' => 'Missing required fields: total_amount, cart_items']);
+    }
+    if (!isset($data['user_id'])) {
+        $data['user_id'] = 1;
     }
 
     try {
@@ -289,13 +300,18 @@ if ($method === 'GET') {
                 }
             }
 
-            foreach ($data['cart_items'] as $it) {
+            foreach ($cartItemsList as $it) {
+                $itId = $it['product_id'] ?? $it['id'] ?? $it['pid'] ?? null;
+                $itName = $it['product_name'] ?? $it['name'] ?? $it['title'] ?? 'Item';
+                $itQty = intval($it['quantity'] ?? $it['qty'] ?? $it['q'] ?? 1);
+                $itPrice = floatval($it['price'] ?? $it['unit_price'] ?? $it['rate'] ?? 0);
+
                 $icols = []; $ivals = []; $iparams = []; $paramTypes = '';
                 if (isset($available['sale_id'])) { $icols[]="`{$available['sale_id']}`"; $ivals[]="?"; $iparams[]=$saleId; $paramTypes .= 'i'; }
-                if (isset($available['product_id'])) { $icols[]="`{$available['product_id']}`"; $ivals[]="?"; $iparams[]=$it['id'] ?? null; $paramTypes .= 'i'; }
-                if (isset($available['product_name'])) { $icols[]="`{$available['product_name']}`"; $ivals[]="?"; $iparams[]=$it['name'] ?? ''; $paramTypes .= 's'; }
-                if (isset($available['quantity'])) { $icols[]="`{$available['quantity']}`"; $ivals[]="?"; $iparams[]=intval($it['quantity'] ?? 1); $paramTypes .= 'i'; }
-                if (isset($available['price'])) { $icols[]="`{$available['price']}`"; $ivals[]="?"; $iparams[]=floatval($it['price'] ?? 0); $paramTypes .= 'd'; }
+                if (isset($available['product_id'])) { $icols[]="`{$available['product_id']}`"; $ivals[]="?"; $iparams[]=$itId; $paramTypes .= 'i'; }
+                if (isset($available['product_name'])) { $icols[]="`{$available['product_name']}`"; $ivals[]="?"; $iparams[]=$itName; $paramTypes .= 's'; }
+                if (isset($available['quantity'])) { $icols[]="`{$available['quantity']}`"; $ivals[]="?"; $iparams[]=$itQty; $paramTypes .= 'i'; }
+                if (isset($available['price'])) { $icols[]="`{$available['price']}`"; $ivals[]="?"; $iparams[]=$itPrice; $paramTypes .= 'd'; }
                 
                 if (!empty($icols)) {
                     $sqlIt = "INSERT INTO `{$foundItemsTable}` (" . implode(",", $icols) . ") VALUES (" . implode(",", $ivals) . ")";

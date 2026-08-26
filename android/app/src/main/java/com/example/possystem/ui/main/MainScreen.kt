@@ -67,15 +67,9 @@ fun MainScreen(
                 BottomNavBar(
                     currentTab = currentTab,
                     onTabSelected = { tab ->
-                        if (tab == NavTab.SALES) {
-                            currentTab = tab
-                            if (selectedCustomer != null) {
-                                triggerScanner()
-                            } else {
-                                showCustomerSelect = true
-                            }
-                        } else {
-                            currentTab = tab
+                        currentTab = tab
+                        if (tab == NavTab.SCANNER && selectedCustomer == null) {
+                            showCustomerSelect = true
                         }
                     },
                     cartItemCount = cart.sumOf { it.quantity }
@@ -89,9 +83,9 @@ fun MainScreen(
             ) {
                 when (currentTab) {
                     NavTab.DASHBOARD -> InventoryScreen(inventoryViewModel = inventoryViewModel)
-                    NavTab.LEADS -> LeadsScreen(leadsViewModel = leadsViewModel, customersViewModel = customersViewModel)
-                    NavTab.SALES -> PosScreen(posViewModel = posViewModel)
-                    NavTab.CUSTOMERS -> CustomersScreen(customersViewModel = customersViewModel)
+                    NavTab.SALES -> SalesHistoryScreen(reportsViewModel = reportsViewModel)
+                    NavTab.SCANNER -> PosScreen(posViewModel = posViewModel)
+                    NavTab.PURCHASES -> PurchasesScreen(purchasesViewModel = purchasesViewModel)
                     NavTab.MORE -> MoreScreen(
                         customersViewModel = customersViewModel,
                         purchasesViewModel = purchasesViewModel,
@@ -112,7 +106,6 @@ fun MainScreen(
                 onCustomerSelected = { customer ->
                     posViewModel.selectCustomer(customer)
                     showCustomerSelect = false
-                    triggerScanner()
                 },
                 onAddNewCustomer = { name, phone, email, address, isGst, gstin ->
                     customersViewModel.addCustomer(name, phone, email, address, isGst, gstin)
@@ -127,7 +120,6 @@ fun MainScreen(
                     )
                     posViewModel.selectCustomer(newCustomer)
                     showCustomerSelect = false
-                    triggerScanner()
                 },
                 onDismiss = { showCustomerSelect = false }
             )
@@ -140,8 +132,6 @@ fun MainScreen(
                     posViewModel.addToCart(scannedProductPending!!, quantity)
                     showQuantityInput = false
                     scannedProductPending = null
-                    currentTab = NavTab.SALES
-                    triggerScanner()
                 },
                 onDismiss = {
                     showQuantityInput = false

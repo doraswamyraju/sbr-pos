@@ -103,8 +103,16 @@ data class SaleItem(
     @SerializedName("product_name") val productName: String = "",
     val quantity: Int = 1,
     val price: Double = 0.0,
-    val total: Double = 0.0
-)
+    val total: Double = 0.0,
+    val id: String = "",
+    val name: String = ""
+) {
+    val displayProductId: String
+        get() = productId.ifEmpty { id }
+
+    val displayProductName: String
+        get() = productName.ifEmpty { name.ifEmpty { "Item" } }
+}
 
 data class Sale(
     val id: String = "",
@@ -142,9 +150,9 @@ data class ReportSummary(
 )
 
 data class UserSettings(
-    @SerializedName("company_name") val companyName: String = "SBR POS System",
-    @SerializedName("company_phone") val companyPhone: String = "+91 9876543210",
-    @SerializedName("company_address") val companyAddress: String = "Hyderabad, India",
+    @SerializedName("company_name") val companyName: String = "Sri Balaji Renewables",
+    @SerializedName("company_phone") val companyPhone: String = "+91 9849099800",
+    @SerializedName("company_address") val companyAddress: String = "Tirupati, India",
     @SerializedName("tax_rate") val taxRate: Double = 18.0,
     @SerializedName("currency_symbol") val currencySymbol: String = "₹"
 )

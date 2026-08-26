@@ -54,6 +54,7 @@ fun PosScreen(
     var showAddCustomerSheet by remember { mutableStateOf(false) }
     var productOverlayOpen by remember { mutableStateOf(false) }
     var productSearchQuery by remember { mutableStateOf("") }
+    var overlayTab by remember { mutableStateOf("search") } // "search" | "scan"
 
     val filteredCustomers = remember(customers, customerSearchQuery) {
         if (customerSearchQuery.isBlank()) emptyList()
@@ -293,40 +294,44 @@ fun PosScreen(
                                 fontSize = 16.sp,
                                 color = TextDark
                             )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(
-                                    onClick = { productOverlayOpen = true },
-                                    enabled = selectedCustomer != null,
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .background(
-                                            if (selectedCustomer != null) PrimaryBlue else Color(0xFFE5E7EB),
-                                            RoundedCornerShape(10.dp)
-                                        )
-                                ) {
-                                    Icon(Icons.Default.Search, contentDescription = "Search Products", tint = if (selectedCustomer != null) Color.White else Color.Gray)
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                IconButton(
-                                    onClick = {
-                                        com.example.possystem.MainActivity.startBarcodeScan { barcode ->
-                                            posViewModel.onBarcodeScanned(barcode)
-                                        }
-                                    },
-                                    enabled = selectedCustomer != null,
-                                    modifier = Modifier
-                                        .size(44.dp)
-                                        .background(
-                                            if (selectedCustomer != null) Color.White else Color(0xFFE5E7EB),
-                                            RoundedCornerShape(10.dp)
-                                        )
-                                        .border(
-                                            if (selectedCustomer != null) BorderStroke(1.dp, BorderSubtle) else BorderStroke(0.dp, Color.Transparent),
-                                            RoundedCornerShape(10.dp)
-                                        )
-                                ) {
-                                    Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan Barcode", tint = if (selectedCustomer != null) PrimaryBlue else Color.Gray)
-                                }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Action Buttons: Search Product & Scan Barcode
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Button(
+                                onClick = { 
+                                    overlayTab = "search"
+                                    productOverlayOpen = true 
+                                },
+                                enabled = selectedCustomer != null,
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier.weight(1f).height(46.dp)
+                            ) {
+                                Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Search Product", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+
+                            OutlinedButton(
+                                onClick = {
+                                    com.example.possystem.MainActivity.startBarcodeScan { barcode ->
+                                        posViewModel.onBarcodeScanned(barcode)
+                                    }
+                                },
+                                enabled = selectedCustomer != null,
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.5.dp, if (selectedCustomer != null) PrimaryBlue else Color.LightGray),
+                                modifier = Modifier.weight(1f).height(46.dp)
+                            ) {
+                                Icon(Icons.Default.QrCodeScanner, contentDescription = null, tint = if (selectedCustomer != null) PrimaryBlue else Color.Gray, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Scan Barcode", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = if (selectedCustomer != null) PrimaryBlue else Color.Gray)
                             }
                         }
 
@@ -503,94 +508,158 @@ fun PosScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Search & Add Products", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = TextDark)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = overlayTab == "search",
+                                onClick = { overlayTab = "search" },
+                                label = { Text("Search Products", fontWeight = FontWeight.Bold) },
+                                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            )
+                            FilterChip(
+                                selected = overlayTab == "scan",
+                                onClick = { overlayTab = "scan" },
+                                label = { Text("Scan Barcode", fontWeight = FontWeight.Bold) },
+                                leadingIcon = { Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(16.dp)) }
+                            )
+                        }
                         IconButton(onClick = { productOverlayOpen = false }) {
                             Icon(Icons.Default.Close, contentDescription = "Close")
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = productSearchQuery,
-                        onValueChange = { productSearchQuery = it },
-                        placeholder = { Text("Search by product name or SKU...", color = TextLight, fontSize = 13.sp) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryBlue) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = textFieldColors,
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
 
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(filteredProducts) { product ->
-                            val cartItem = cart.find { it.product.id == product.id }
-                            val quantityInCart = cartItem?.quantity ?: 0
+                    if (overlayTab == "search") {
+                        OutlinedTextField(
+                            value = productSearchQuery,
+                            onValueChange = { productSearchQuery = it },
+                            placeholder = { Text("Search by product name or SKU...", color = TextLight, fontSize = 13.sp) },
+                            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryBlue) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = textFieldColors,
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
 
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB))
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(filteredProducts) { product ->
+                                val cartItem = cart.find { it.product.id == product.id }
+                                val quantityInCart = cartItem?.quantity ?: 0
+
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB))
                                 ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(product.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                        Text("₹${String.format("%.2f", product.price)} • Stock: ${product.stockLevel}", fontSize = 12.sp, color = TextMuted)
-                                    }
-                                    
-                                    if (quantityInCart == 0) {
-                                        Button(
-                                            onClick = { 
-                                                posViewModel.addToCart(product, 1)
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
-                                            shape = RoundedCornerShape(8.dp),
-                                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                                        ) {
-                                            Text("Add", fontWeight = FontWeight.Bold)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(product.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextDark, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text("₹${String.format("%.2f", product.price)} • Stock: ${product.stockLevel}", fontSize = 12.sp, color = TextMuted)
                                         }
-                                    } else {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                            modifier = Modifier
-                                                .background(Color(0xFFEFF6FF), RoundedCornerShape(8.dp))
-                                                .border(1.dp, PrimaryBlue.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                                .padding(horizontal = 4.dp, vertical = 2.dp)
-                                        ) {
-                                            IconButton(
-                                                onClick = { posViewModel.updateCartQuantity(product.id, quantityInCart - 1) },
-                                                modifier = Modifier.size(32.dp)
+                                        
+                                        if (quantityInCart == 0) {
+                                            Button(
+                                                onClick = { 
+                                                    posViewModel.addToCart(product, 1)
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                                                shape = RoundedCornerShape(8.dp),
+                                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                                             ) {
-                                                Text("-", fontWeight = FontWeight.Bold, color = PrimaryBlue, fontSize = 18.sp)
+                                                Text("Add", fontWeight = FontWeight.Bold)
                                             }
-                                            Text(
-                                                text = "$quantityInCart",
-                                                fontWeight = FontWeight.Bold,
-                                                color = PrimaryBlue,
-                                                fontSize = 14.sp,
-                                                modifier = Modifier.padding(horizontal = 6.dp)
-                                            )
-                                            IconButton(
-                                                onClick = { posViewModel.updateCartQuantity(product.id, quantityInCart + 1) },
-                                                modifier = Modifier.size(32.dp)
+                                        } else {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                modifier = Modifier
+                                                    .background(Color(0xFFEFF6FF), RoundedCornerShape(8.dp))
+                                                    .border(1.dp, PrimaryBlue.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
                                             ) {
-                                                Text("+", fontWeight = FontWeight.Bold, color = PrimaryBlue, fontSize = 18.sp)
+                                                IconButton(
+                                                    onClick = { posViewModel.updateCartQuantity(product.id, quantityInCart - 1) },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Text("-", fontWeight = FontWeight.Bold, color = PrimaryBlue, fontSize = 18.sp)
+                                                }
+                                                Text(
+                                                    text = "$quantityInCart",
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = PrimaryBlue,
+                                                    fontSize = 14.sp,
+                                                    modifier = Modifier.padding(horizontal = 6.dp)
+                                                )
+                                                IconButton(
+                                                    onClick = { posViewModel.updateCartQuantity(product.id, quantityInCart + 1) },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Text("+", fontWeight = FontWeight.Bold, color = PrimaryBlue, fontSize = 18.sp)
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
                         }
+                    } else {
+                        // Scan Tab
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.QrCodeScanner,
+                                contentDescription = null,
+                                tint = PrimaryBlue,
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                "Scan Product Barcode",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = TextDark
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                "Tap below to open camera scanner.",
+                                fontSize = 13.sp,
+                                color = TextMuted,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Button(
+                                onClick = {
+                                    com.example.possystem.MainActivity.startBarcodeScan { barcode ->
+                                        posViewModel.onBarcodeScanned(barcode)
+                                    }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                                shape = RoundedCornerShape(10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth(0.8f)
+                                    .height(48.dp)
+                            ) {
+                                Icon(Icons.Default.QrCodeScanner, contentDescription = null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Open Camera Scanner", fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
+
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
                         onClick = { productOverlayOpen = false },

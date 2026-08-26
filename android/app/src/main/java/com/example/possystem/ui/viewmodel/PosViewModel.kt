@@ -180,6 +180,8 @@ class PosViewModel : ViewModel() {
 
         val items = _cart.value.map {
             SaleItem(
+                id = it.product.id,
+                name = it.product.name,
                 productId = it.product.id,
                 productName = it.product.name,
                 quantity = it.quantity,

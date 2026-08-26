@@ -34,6 +34,9 @@ class MainActivity : ComponentActivity() {
             onScanResult(rawValue)
           }
         }
+        .addOnCanceledListener {
+          // Scanner closed/canceled by user - no error Toast needed
+        }
         .addOnFailureListener { e ->
           Toast.makeText(activity, "Scan failed: ${e.message}", Toast.LENGTH_SHORT).show()
         }
