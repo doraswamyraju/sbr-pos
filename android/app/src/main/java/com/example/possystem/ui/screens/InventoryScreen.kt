@@ -113,88 +113,156 @@ fun InventoryScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Dashboard Buttons
+            // KPI Summary Dashboard Cards
             item {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Button(
-                        onClick = {},
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                val totalValue = products.sumOf { it.price * it.stockLevel }
+                val totalItems = products.sumOf { it.stockLevel }
+                val lowStockCount = products.count { it.stockLevel in 1..5 }
+                val categoriesCount = products.mapNotNull { it.category }.distinct().size
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.ShoppingCart, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Record New Purchase", color = Color.White, fontWeight = FontWeight.Bold)
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFFECFDF5),
+                            border = BorderStroke(1.dp, Color(0xFFA7F3D0))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Stock Value", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF047857))
+                                    Icon(Icons.Default.TrendingUp, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("₹${String.format("%.0f", totalValue)}", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF065F46))
+                            }
+                        }
+
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFFEFF6FF),
+                            border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Total Products", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E40AF))
+                                    Icon(Icons.Default.Inventory2, contentDescription = null, tint = Color(0xFF2563EB), modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("${products.size} items", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF1E3A8A))
+                            }
+                        }
                     }
 
-                    Button(
-                        onClick = {},
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.FileUpload, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Bulk Import", color = Color.White, fontWeight = FontWeight.Bold)
-                    }
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFFFFFBEB),
+                            border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Low Stock", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFB45309))
+                                    Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("$lowStockCount items", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF92400E))
+                            }
+                        }
 
-                    Button(
-                        onClick = {},
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE5E7EB)),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.QrCode, contentDescription = null, tint = Color.Gray)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Bulk Generate Barcodes", color = Color.Gray, fontWeight = FontWeight.Bold)
-                    }
-
-                    Button(
-                        onClick = { inventoryViewModel.openAddProductSheet() },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Add New Product", color = Color.White, fontWeight = FontWeight.Bold)
+                        Surface(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color(0xFFF3E8FF),
+                            border = BorderStroke(1.dp, Color(0xFFDDD6FE))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Categories", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6D28D9))
+                                    Icon(Icons.Default.Category, contentDescription = null, tint = Color(0xFF7C3AED), modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("$categoriesCount groups", fontSize = 16.sp, fontWeight = FontWeight.Black, color = Color(0xFF5B21B6))
+                            }
+                        }
                     }
                 }
             }
 
-            // Search Bar & Select All Checkbox
+            // Quick Action Buttons
             item {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { inventoryViewModel.setSearchQuery(it) },
-                        placeholder = { Text("Search products...", color = TextLight, fontSize = 13.sp) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextDark,
-                            unfocusedTextColor = TextDark,
-                            focusedBorderColor = PrimaryBlue,
-                            unfocusedBorderColor = BorderSubtle
-                        )
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { inventoryViewModel.openAddProductSheet() },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f).height(46.dp)
                     ) {
-                        Checkbox(checked = false, onCheckedChange = {})
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Select all", fontSize = 13.sp, color = TextDark)
+                        Icon(Icons.Default.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Add Product", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = {},
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, BorderSubtle),
+                        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
+                        modifier = Modifier.weight(1f).height(46.dp)
+                    ) {
+                        Icon(Icons.Default.FileUpload, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Bulk Import", color = TextDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
                 }
+            }
+
+            // Search Bar
+            item {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { inventoryViewModel.setSearchQuery(it) },
+                    placeholder = { Text("Search products by name or SKU...", color = TextLight, fontSize = 13.sp) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryBlue) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = TextDark,
+                        unfocusedTextColor = TextDark,
+                        focusedBorderColor = PrimaryBlue,
+                        unfocusedBorderColor = BorderSubtle
+                    )
+                )
             }
 
             // Product Cards list
@@ -240,17 +308,17 @@ fun ProductDashboardCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        // Thin Blue Top Border
         Column {
+            // Top Accent Bar
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp)
-                    .background(PrimaryBlue)
+                    .height(4.dp)
+                    .background(PrimaryGradient)
             )
             Column(modifier = Modifier.padding(14.dp)) {
                 Row(
@@ -258,45 +326,77 @@ fun ProductDashboardCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = product.name,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp,
-                        color = TextDark,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "Edit",
-                            tint = PrimaryBlue,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clickable { onEdit() }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = product.name,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = TextDark
                         )
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Delete",
-                            tint = StatusError,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clickable { onDelete() }
+                        if (!product.sku.isNullOrBlank()) {
+                            Text("SKU: ${product.sku}", fontSize = 11.sp, color = TextMuted)
+                        }
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier.size(32.dp).background(Color(0xFFEFF6FF), CircleShape)
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = PrimaryBlue, modifier = Modifier.size(16.dp))
+                        }
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier.size(32.dp).background(Color(0xFFFFE4E6), CircleShape)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = StatusError, modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Category pill
+                    Surface(
+                        color = Color(0xFFF1F5F9),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Text(
+                            text = product.category ?: "General",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextMuted,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
+
+                    // Stock status pill
+                    val (bgColor, textColor, labelText) = when {
+                        product.stockLevel <= 0 -> Triple(Color(0xFFFEE2E2), Color(0xFFDC2626), "Out of Stock")
+                        product.stockLevel <= 5 -> Triple(Color(0xFFFEF3C7), Color(0xFFD97706), "Low: ${product.stockLevel}")
+                        else -> Triple(Color(0xFFD1FAE5), Color(0xFF059669), "Stock: ${product.stockLevel}")
+                    }
+
+                    Surface(
+                        color = bgColor,
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Text(
+                            text = labelText,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = textColor,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text("SKU: ${product.sku ?: "N/A"}", fontSize = 13.sp, color = TextMuted)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Category: ${product.category ?: "General"}", fontSize = 13.sp, color = TextMuted)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Price: ₹${String.format("%.2f", product.price)}", fontSize = 13.sp, color = TextMuted)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text("Stock: ${product.stockLevel}", fontSize = 13.sp, color = TextMuted)
-
-                Spacer(modifier = Modifier.height(12.dp))
-                Divider(color = BorderSubtle)
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = BorderSubtle)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
@@ -304,21 +404,17 @@ fun ProductDashboardCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = false, onCheckedChange = {})
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Select", fontSize = 13.sp, color = TextDark)
-                    }
-                    Button(
-                        onClick = {},
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4F46E5)),
-                        shape = RoundedCornerShape(6.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(Icons.Default.QrCode, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Barcode", color = Color.White, fontSize = 11.sp)
-                    }
+                    Text(
+                        text = "Price",
+                        fontSize = 12.sp,
+                        color = TextMuted
+                    )
+                    Text(
+                        text = "₹${String.format("%.2f", product.price)}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black,
+                        color = Color(0xFF059669)
+                    )
                 }
             }
         }

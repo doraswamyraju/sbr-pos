@@ -1,5 +1,6 @@
 package com.example.possystem.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -112,17 +113,26 @@ fun StatCard(
     color: Color,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = color.copy(alpha = 0.1f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        shape = RoundedCornerShape(18.dp),
+        color = color.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f))
     ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(24.dp))
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = title, fontSize = 11.sp, color = Color.Gray)
-            Text(text = value, fontSize = 16.sp, fontWeight = FontWeight.Black, color = color, maxLines = 1)
+        Column(modifier = Modifier.padding(16.dp)) {
+            Surface(
+                color = color.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(36.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(text = title, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF64748B))
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(text = value, fontSize = 17.sp, fontWeight = FontWeight.Black, color = Color(0xFF0F172A), maxLines = 1)
         }
     }
 }
@@ -131,24 +141,26 @@ fun StatCard(
 fun RecentSaleCardItem(sale: Sale) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
+            modifier = Modifier.padding(14.dp).fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(text = sale.invoiceNo, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                Text(text = "${sale.customerName} • ${sale.paymentMethod}", fontSize = 12.sp, color = Color.Gray)
-                Text(text = sale.date, fontSize = 11.sp, color = Color.LightGray)
+                Text(text = sale.invoiceNo, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFF0F172A))
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(text = "${sale.customerName} • ${sale.paymentMethod}", fontSize = 12.sp, color = Color(0xFF475569))
+                Text(text = sale.date, fontSize = 11.sp, color = Color(0xFF94A3B8))
             }
             Text(
                 text = "₹${String.format("%.2f", sale.finalAmount)}",
                 fontWeight = FontWeight.Black,
-                fontSize = 15.sp,
-                color = MaterialTheme.colorScheme.primary
+                fontSize = 16.sp,
+                color = Color(0xFF059669)
             )
         }
     }

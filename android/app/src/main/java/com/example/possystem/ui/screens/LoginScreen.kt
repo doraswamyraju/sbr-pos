@@ -45,8 +45,9 @@ fun LoginScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        PrimaryBlue,
-                        PrimaryBlueDark
+                        Color(0xFF0F172A),
+                        Color(0xFF1E3A8A),
+                        Color(0xFF2563EB)
                     )
                 )
             ),
@@ -54,12 +55,12 @@ fun LoginScreen(
     ) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.9f)
+                .fillMaxWidth(0.92f)
                 .padding(16.dp)
-                .shadow(16.dp, shape = RoundedCornerShape(24.dp)),
+                .shadow(20.dp, shape = RoundedCornerShape(28.dp)),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            shape = RoundedCornerShape(28.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             Column(
                 modifier = Modifier
@@ -69,8 +70,8 @@ fun LoginScreen(
             ) {
                 // SBR Logo Container
                 Surface(
-                    color = PrimaryBlueLight,
-                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0xFFEFF6FF),
+                    shape = RoundedCornerShape(20.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp)
@@ -85,7 +86,7 @@ fun LoginScreen(
                             painter = painterResource(id = R.drawable.logo),
                             contentDescription = "Sri Balaji Renewables Logo",
                             modifier = Modifier
-                                .height(68.dp)
+                                .height(72.dp)
                                 .fillMaxWidth(),
                             contentScale = ContentScale.Fit,
                             alignment = Alignment.Center
@@ -96,15 +97,15 @@ fun LoginScreen(
                 Text(
                     text = "Sri Balaji Renewables",
                     fontSize = 22.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = PrimaryBlueDark,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF0F172A),
                     textAlign = TextAlign.Center
                 )
                 Text(
-                    text = "Point of Sale System",
+                    text = "Smart POS Terminal",
                     fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextMuted,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryBlue,
                     textAlign = TextAlign.Center
                 )
 
@@ -143,7 +144,7 @@ fun LoginScreen(
                         unfocusedBorderColor = BorderSubtle,
                         cursorColor = PrimaryBlue
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(14.dp)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -164,7 +165,7 @@ fun LoginScreen(
                         unfocusedBorderColor = BorderSubtle,
                         cursorColor = PrimaryBlue
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(14.dp)
                 )
 
                 Spacer(modifier = Modifier.height(28.dp))
@@ -174,12 +175,20 @@ fun LoginScreen(
                     enabled = !isLoading && username.isNotBlank(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .height(52.dp)
+                        .shadow(8.dp, RoundedCornerShape(14.dp))
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(Color(0xFF2563EB), Color(0xFF4F46E5))
+                            ),
+                            shape = RoundedCornerShape(14.dp)
+                        ),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = PrimaryBlue,
-                        disabledContainerColor = PrimaryBlue.copy(alpha = 0.5f)
+                        containerColor = Color.Transparent,
+                        disabledContainerColor = Color.LightGray.copy(alpha = 0.5f)
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    contentPadding = PaddingValues(0.dp),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
