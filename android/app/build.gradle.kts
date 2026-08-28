@@ -5,19 +5,29 @@ plugins {
 }
 
 android {
-    namespace = "com.example.possystem"
+    namespace = "com.sbr.pos"
     compileSdk = 36
     defaultConfig {
-        applicationId = "com.example.possystem"
+        applicationId = "com.sbr.pos"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("sbr-pos-release-key.jks")
+            storePassword = "sbrpos2026"
+            keyAlias = "sbrpos"
+            keyPassword = "sbrpos2026"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
