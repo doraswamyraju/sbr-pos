@@ -1,37 +1,29 @@
 <?php
-$allowed_origins = ['http://localhost:3000', 'https://rajugariventures.com', 'http://127.0.0.1:3000'];
+// server/api/products.php
+
+$allowed_origins = ['http://localhost:3000', 'https://pos.sriddha.com', 'https://sbrpos.rajugariventures.com', 'http://127.0.0.1:3000'];
 if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
     header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
 } else {
-    header("Access-Control-Allow-Origin: http://localhost:3000");
+    header("Access-Control-Allow-Origin: *");
 }
 header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// server/api/products.php
-
-header('Content-Type: application/json');
-$allowed_origins = ['http://localhost:3000', 'https://rajugariventures.com', 'http://127.0.0.1:3000'];
-if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
-} else {
-}
-
-
-// Handle preflight OPTIONS requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
-// Include your database connection file
+header('Content-Type: application/json; charset=utf-8');
+
 include '../db_connect.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
 switch ($method) {
     case 'GET':
-        // Handle fetching single product by ID or all products
         if (isset($_GET['id'])) {
             $stmt = $conn->prepare("SELECT id, name, price, stock_level, description, sku, category, supplier_id FROM products WHERE id = ?");
             $stmt->bind_param("i", $_GET['id']);
@@ -45,14 +37,12 @@ switch ($method) {
             }
             $stmt->close();
         } else {
-            // Ensure `price` is always returned
             $sql = "SELECT id, name, price, stock_level, description, sku, category, supplier_id FROM products";
             $result = $conn->query($sql);
             $products = [];
-            if ($result->num_rows > 0) {
+            if ($result && $result->num_rows > 0) {
                 while($row = $result->fetch_assoc()) {
-                    // Ensure price is a valid number, defaulting to 0.00 if null
-                    $row['price'] = $row['price'] ?? 0.00;
+                    $row['price'] = floatval($row['price'] ?? 0.00);
                     $products[] = $row;
                 }
             }
@@ -61,7 +51,6 @@ switch ($method) {
         break;
 
     case 'POST':
-        // Handle adding a new product
         $data = json_decode(file_get_contents("php://input"), true);
         if ($data === null) {
             http_response_code(400);
@@ -69,13 +58,13 @@ switch ($method) {
             exit;
         }
         
-        $name = $data['name'] ?? '';
-        $description = $data['description'] ?? '';
-        $price = $data['price'] ?? 0;
-        $stock_level = $data['stock_level'] ?? 0;
-        $sku = $data['sku'] ?? '';
-        $category = $data['category'] ?? '';
-        $supplier_id = $data['supplier_id'] ?? null;
+        $name = trim($data['name'] ?? '');
+        $description = trim($data['description'] ?? '');
+        $price = isset($data['price']) && $data['price'] !== '' ? floatval($data['price']) : 0.0;
+        $stock_level = isset($data['stock_level']) && $data['stock_level'] !== '' ? intval($data['stock_level']) : 0;
+        $sku = trim($data['sku'] ?? '');
+        $category = trim($data['category'] ?? '');
+        $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id'])) ? intval($data['supplier_id']) : null;
 
         $stmt = $conn->prepare("INSERT INTO products (name, description, price, stock_level, sku, category, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
         $stmt->bind_param("ssdissi", 
@@ -98,7 +87,6 @@ switch ($method) {
         break;
 
     case 'PUT':
-        // Handle updating an existing product
         $data = json_decode(file_get_contents("php://input"), true);
         if ($data === null) {
             http_response_code(400);
@@ -112,14 +100,14 @@ switch ($method) {
             exit;
         }
 
-        $name = $data['name'] ?? '';
-        $description = $data['description'] ?? '';
-        $price = $data['price'] ?? 0;
-        $stock_level = $data['stock_level'] ?? 0;
-        $sku = $data['sku'] ?? '';
-        $category = $data['category'] ?? '';
-        $supplier_id = $data['supplier_id'] ?? null;
-        $id = $_GET['id'];
+        $name = trim($data['name'] ?? '');
+        $description = trim($data['description'] ?? '');
+        $price = isset($data['price']) && $data['price'] !== '' ? floatval($data['price']) : 0.0;
+        $stock_level = isset($data['stock_level']) && $data['stock_level'] !== '' ? intval($data['stock_level']) : 0;
+        $sku = trim($data['sku'] ?? '');
+        $category = trim($data['category'] ?? '');
+        $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id'])) ? intval($data['supplier_id']) : null;
+        $id = intval($_GET['id']);
 
         $stmt = $conn->prepare("UPDATE products SET name=?, description=?, price=?, stock_level=?, sku=?, category=?, supplier_id=? WHERE id=?");
         $stmt->bind_param("ssdissii", 
