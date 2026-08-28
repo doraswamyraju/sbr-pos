@@ -113,8 +113,8 @@ foreach ($products as $item) {
     // Check if product exists by SKU or Name
     $existing_id = null;
     if (!empty($sku)) {
-        $check = $conn->prepare("SELECT id FROM products WHERE sku = ? LIMIT 1");
-        $check->bind_param("s", $sku);
+        $check = $conn->prepare("SELECT id FROM products WHERE sku = ? OR REPLACE(sku, '-', ' ') = REPLACE(?, '-', ' ') OR REPLACE(sku, ' ', '') = REPLACE(?, '-', '') LIMIT 1");
+        $check->bind_param("sss", $sku, $sku, $sku);
         $check->execute();
         $res = $check->get_result();
         if ($r = $res->fetch_assoc()) {
@@ -124,7 +124,7 @@ foreach ($products as $item) {
     }
 
     if (!$existing_id && !empty($name)) {
-        $check = $conn->prepare("SELECT id FROM products WHERE name = ? LIMIT 1");
+        $check = $conn->prepare("SELECT id FROM products WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1");
         $check->bind_param("s", $name);
         $check->execute();
         $res = $check->get_result();
