@@ -1,58 +1,75 @@
 # Sri Balaji Renewables POS - VPS Deployment Guide
 
-This guide details how to locate the project directory on the VPS and deploy updates safely.
-
-## 1. Locate the Project Directory on the VPS
-
-If you are not sure where the project files are stored on the server, you can find them using the following methods.
-
-### Method A: Search Nginx Configuration (Recommended)
-Since the app is hosted at `https://pos.sriddha.com`, Nginx is routing the traffic. Run the following command to find the config file and the root directory where the application is served:
-```bash
-grep -r "pos.sriddha.com" /etc/nginx/
-```
-Look for the `root` directive inside the returned configuration block. For example:
-```nginx
-root /var/www/rajugariventures/sbr-pos/build;
-```
-The project root directory is `/var/www/rajugariventures/sbr-pos`.
-
-### Method B: Find git repositories on the server
-Search the VPS filesystem for directories named `sbr-pos` or directories containing a `.git` folder:
-```bash
-find /var/www /home /root -name "sbr-pos" -type d 2>/dev/null
-# or find any git repo
-find /var/www /home /root -name ".git" -type d 2>/dev/null
-```
+This guide details the exact steps to deploy updates safely on the VPS server for `https://pos.sriddha.com`.
 
 ---
 
-## 2. Deploying Updates
+## 1. Quick Deployment Checklist
 
-Run these commands on your VPS:
+Whenever you push new changes to GitHub, connect to the VPS via SSH and run:
 
 ```bash
 # 1. Navigate to the project directory
 cd /var/www/rajugariventures/sbr-pos
 
-# 2. Pull the latest changes from Git
+# 2. Pull the latest code
 git pull origin main
 
-# 3. Install dependencies (using legacy-peer-deps to handle React peer conflicts)
+# 3. Install dependencies (required if package.json changed)
 npm install --legacy-peer-deps
 
-# 4. Build the production application
+# 4. Build the production React frontend
 npm run build
+
+# 5. Restart PHP-FPM (CRITICAL: Clears bytecode OPcache when PHP files change)
+systemctl restart php8.1-fpm
 ```
 
 ---
 
-## 3. Troubleshooting Common Errors
+## 2. Server Configuration Summary
 
-### Error: `fatal: not a git repository`
-* **Reason:** You ran the command in the wrong folder (like `/root` or `/`).
-* **Fix:** Ensure you `cd` into the correct project folder containing the `.git` folder before running `git pull`.
+| Setting | Value |
+|---|---|
+| **Domain** | `https://pos.sriddha.com` |
+| **Project Directory** | `/var/www/rajugariventures/sbr-pos` |
+| **Git Remote** | `https://github.com/doraswamyraju/sbr-pos.git` |
+| **Branch** | `main` |
+| **PHP Version** | `php8.1-fpm` |
+| **Nginx Site Config** | `/etc/nginx/sites-available/pos.sriddha.com` |
 
-### Error: `npm error Missing script: "build"`
-* **Reason:** You ran `npm run build` in a folder that doesn't contain the React project (no `package.json` with a build script).
-* **Fix:** Navigate to the folder containing `package.json` before running the command.
+---
+
+## 3. Verifying Health After Deployment
+
+Run a quick test request from the VPS to verify the backend API responds with `HTTP 200`:
+
+```bash
+curl -i "https://pos.sriddha.com/server/api/products.php"
+```
+
+---
+
+## 4. Troubleshooting & Common Pitfalls
+
+### Issue A: PHP changes are not taking effect (Stale OPcache)
+* **Cause**: `php8.1-fpm` caches compiled PHP bytecode in memory.
+* **Fix**: Run `systemctl restart php8.1-fpm` after pulling any PHP file changes.
+
+### Issue B: Git remote points to wrong repository (`rajugariventures.git` instead of `sbr-pos.git`)
+* **Check**:
+  ```bash
+  git remote -v
+  ```
+* **Fix**:
+  ```bash
+  git remote set-url origin https://github.com/doraswamyraju/sbr-pos.git
+  git fetch origin main
+  git reset --hard origin/main
+  ```
+
+### Issue C: Checking Live Error Logs
+To view live server errors when testing features:
+```bash
+tail -f /var/log/nginx/error.log
+```
