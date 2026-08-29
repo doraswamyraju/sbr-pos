@@ -4,24 +4,23 @@ This guide details the exact steps to deploy updates safely on the VPS server fo
 
 ---
 
-## 1. Quick Deployment Checklist
+## 1. Quick Deployment Command
 
 Whenever you push new changes to GitHub, connect to the VPS via SSH and run:
 
 ```bash
-# 1. Navigate to the project directory
-cd /var/www/rajugariventures/sbr-pos
-
-# 2. Pull the latest code
+# 1. Pull latest code in the sbr-pos source repo
+cd /var/www/sbr-pos-repo
 git pull origin main
 
-# 3. Install dependencies (required if package.json changed)
-npm install --legacy-peer-deps
-
-# 4. Build the production React frontend
+# 2. Build the production React frontend
 npm run build
 
-# 5. Restart PHP-FPM (CRITICAL: Clears bytecode OPcache when PHP files change)
+# 3. Deploy to the live website folder (pos.sriddha.com)
+cp -r /var/www/sbr-pos-repo/build/* /var/www/rajugariventures/sbr-pos/
+cp -r /var/www/sbr-pos-repo/server/* /var/www/rajugariventures/sbr-pos/server/
+
+# 4. Restart PHP-FPM (Clears OPcache)
 systemctl restart php8.1-fpm
 ```
 
@@ -32,7 +31,8 @@ systemctl restart php8.1-fpm
 | Setting | Value |
 |---|---|
 | **Domain** | `https://pos.sriddha.com` |
-| **Project Directory** | `/var/www/rajugariventures/sbr-pos` |
+| **Source Git Repo** | `/var/www/sbr-pos-repo` |
+| **Live Serving Folder** | `/var/www/rajugariventures/sbr-pos` |
 | **Git Remote** | `https://github.com/doraswamyraju/sbr-pos.git` |
 | **Branch** | `main` |
 | **PHP Version** | `php8.1-fpm` |
