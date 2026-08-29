@@ -218,11 +218,31 @@ switch ($method) {
             apiResponse('error', 'User ID is required for deletion.');
         }
 
+        $userId = (int)$id;
+
+        // Prevent deleting the primary admin account
+        $chk = $conn->prepare("SELECT username FROM users WHERE id = ?");
+        if ($chk) {
+            $chk->bind_param("i", $userId);
+            $chk->execute();
+            $uRes = $chk->get_result()->fetch_assoc();
+            $chk->close();
+            if ($uRes && strtolower($uRes['username']) === 'admin') {
+                apiResponse('error', 'Cannot delete the primary system administrator account.');
+            }
+        }
+
+        // Safely unassign foreign key references so deletion succeeds without constraint violations
+        @$conn->query("UPDATE `leads` SET `assigned_to_user_id` = NULL WHERE `assigned_to_user_id` = $userId");
+        @$conn->query("UPDATE `tasks` SET `assigned_to` = NULL WHERE `assigned_to` = $userId");
+        @$conn->query("UPDATE `projects` SET `user_id` = NULL WHERE `user_id` = $userId");
+        @$conn->query("UPDATE `sales` SET `user_id` = NULL WHERE `user_id` = $userId");
+
         $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
         if (!$stmt) {
             apiResponse('error', 'Prepare failed: ' . $conn->error);
         }
-        $stmt->bind_param("i", $id);
+        $stmt->bind_param("i", $userId);
 
         if ($stmt->execute()) {
             apiResponse('success', 'User deleted successfully');
