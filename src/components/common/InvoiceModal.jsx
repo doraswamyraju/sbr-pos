@@ -1,6 +1,5 @@
 // src/components/InvoiceModal.jsx
 import React from "react";
-import axios from "axios";
 
 /**
  * InvoiceModal - renders an invoice and provides printing (A4 and 2" thermal)

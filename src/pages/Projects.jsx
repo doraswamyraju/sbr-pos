@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../config';
 // src/pages/Projects.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaPlus, FaEdit, FaTrash, FaBuilding, FaEllipsisH } from 'react-icons/fa';
+import { FaPlus, FaEdit, FaTrash, FaBuilding } from 'react-icons/fa';
 import Modal from '../components/common/Modal';
 import ProjectFormModal from '../components/ProjectFormModal';
 import { Link } from 'react-router-dom';

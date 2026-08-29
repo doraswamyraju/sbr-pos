@@ -43,10 +43,8 @@ const ProductForm = ({ onProductAdded, initialData }) => {
     try {
       if (initialData?.id) {
         await axios.put(`${API_BASE_URL}/server/api/products.php?id=${initialData.id}`, formData);
-        alert('Product updated successfully!');
       } else {
         await axios.post(`${API_BASE_URL}/server/api/products.php`, formData);
-        alert('Product added successfully!');
       }
       if (onProductAdded) {
         onProductAdded();

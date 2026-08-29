@@ -5,7 +5,6 @@ import {
   FaTachometerAlt,
   FaUsers,
   FaDollarSign,
-  FaBoxOpen,
   FaEllipsisH,
   FaTimes,
   FaChartBar,

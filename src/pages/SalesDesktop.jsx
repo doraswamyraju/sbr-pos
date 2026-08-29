@@ -756,6 +756,7 @@ const PaymentForm = ({
     if (!paymentAmount) {
       onAmountChange(String(payable));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payable]);
 
   return (

@@ -22,17 +22,10 @@ const Customers = () => {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   useEffect(() => {
     fetchCustomers();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const handleResize = () => {
-    setIsMobile(window.innerWidth <= 768);
-  };
 
   const fetchCustomers = async () => {
     try {
@@ -65,7 +58,7 @@ const Customers = () => {
 
   const handleEditCustomer = (customer) => {
     setCurrentCustomer(customer);
-    setCustomerData({ ...customer, is_gst_registered: customer.is_gst_registered == 1 ? true : false });
+    setCustomerData({ ...customer, is_gst_registered: Number(customer.is_gst_registered) === 1 });
     setShowFormModal(true);
   };
 
@@ -179,14 +172,14 @@ const Customers = () => {
                   <td className="px-6 py-4 whitespace-nowrap">{customer.full_name}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{customer.phone_number}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${customer.is_gst_registered == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {customer.is_gst_registered == 1 ? 'Yes' : 'No'}
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${Number(customer.is_gst_registered) === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {Number(customer.is_gst_registered) === 1 ? 'Yes' : 'No'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{customer.gstin || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${customer.is_active == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                      {customer.is_active == 1 ? 'Active' : 'Inactive'}
+                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${Number(customer.is_active) === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {Number(customer.is_active) === 1 ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -233,17 +226,17 @@ const Customers = () => {
               <div className="text-sm">
                 <p>
                   <span className="font-semibold">GST Registered: </span>
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${customer.is_gst_registered == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {customer.is_gst_registered == 1 ? 'Yes' : 'No'}
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${Number(customer.is_gst_registered) === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {Number(customer.is_gst_registered) === 1 ? 'Yes' : 'No'}
                   </span>
                 </p>
-                {customer.is_gst_registered == 1 && (
+                {Number(customer.is_gst_registered) === 1 && (
                   <p className="mt-1"><span className="font-semibold">GSTIN:</span> {customer.gstin || 'N/A'}</p>
                 )}
                 <p className="mt-1">
                   <span className="font-semibold">Status: </span>
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${customer.is_active == 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                    {customer.is_active == 1 ? 'Active' : 'Inactive'}
+                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${Number(customer.is_active) === 1 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {Number(customer.is_active) === 1 ? 'Active' : 'Inactive'}
                   </span>
                 </p>
               </div>

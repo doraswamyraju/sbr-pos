@@ -14,7 +14,6 @@ const SalesMobile = (props) => {
   const {
     user,
     products,
-    customers,
     cart,
     setCart,
     selectedCustomer,
@@ -28,8 +27,6 @@ const SalesMobile = (props) => {
     payable,
     discount,
     setDiscount,
-    showProductModal,
-    setShowProductModal,
     showNewCustomerModal,
     setShowNewCustomerModal,
     showPaymentModal,

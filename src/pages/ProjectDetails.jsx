@@ -1,7 +1,7 @@
 import { API_BASE_URL } from '../config';
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { FaEdit, FaChartLine, FaClipboardList, FaUserFriends, FaCalendar, FaDollarSign, FaSpinner } from 'react-icons/fa';
+import { FaClipboardList, FaSpinner } from 'react-icons/fa';
 import Modal from '../components/common/Modal';
 import ProjectFormModal from '../components/ProjectFormModal';
 import axios from 'axios';
@@ -72,6 +72,7 @@ const ProjectDetails = () => {
         if (project && project.id) {
             fetchProjectData();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [project]);
 
     const onFormSave = async (data) => {

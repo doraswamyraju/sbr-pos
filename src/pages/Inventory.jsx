@@ -33,15 +33,6 @@ const Inventory = ({ currentUser }) => {
         }
     };
 
-    const getHeaderTitle = () => {
-        if (!currentUser) return "Inventory";
-        const role = (currentUser.role || '').toLowerCase();
-        if (role.includes('admin')) {
-            return "Admin Panel";
-        }
-        return "Inventory Management";
-    };
-
     if (loading) return <div className="text-center p-4">Loading...</div>;
     if (error) return <div className="text-center p-4 text-red-600">{error}</div>;
 

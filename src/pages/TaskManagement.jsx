@@ -57,6 +57,7 @@ const TaskManagement = () => {
             fetchTasks();
             fetchStatuses(); // Fetch statuses when component mounts
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectId]);
 
     useEffect(() => {
@@ -199,7 +200,7 @@ const TaskManagement = () => {
     const handleRowAction = (action, taskId) => {
         const findTask = (list) => {
             for (let task of list) {
-                if (task.id == taskId) return task;
+                if (String(task.id) === String(taskId)) return task;
                 if (task.subtasks && task.subtasks.length > 0) {
                     const subTask = findTask(task.subtasks);
                     if (subTask) return subTask;
@@ -345,14 +346,14 @@ const TaskManagement = () => {
                             </button>
                             {showStatusDropdown && (
                                 <div className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10" ref={dropdownRef}>
-                                    <a href="#" onClick={() => handleStatusFilter('All')} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">All <span className="float-right text-gray-500">{tasks.length}</span></a>
+                                    <button type="button" onClick={() => handleStatusFilter('All')} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">All <span className="float-right text-gray-500">{tasks.length}</span></button>
                                     {statuses.map(status => (
-                                        <a key={status} href="#" onClick={() => handleStatusFilter(status)} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <button key={status} type="button" onClick={() => handleStatusFilter(status)} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             {status === 0 ? 'Not Started' : (status === 100 ? 'Completed' : 'Ongoing')}
                                             <span className="float-right text-gray-500">
-                                                {tasks.filter(task => task.progress === status).length}
-                                            </span>
-                                        </a>
+                                                 {tasks.filter(task => task.progress === status).length}
+                                             </span>
+                                        </button>
                                     ))}
                                 </div>
                             )}
@@ -428,12 +429,12 @@ const TaskManagement = () => {
                     className="absolute z-50 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-200"
                     style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
                 >
-                    <a href="#" onClick={() => handleRowAction('Edit', activeDropdown.split('-')[1])} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</a>
-                    <a href="#" onClick={() => handleRowAction('Add Subtask', activeDropdown.split('-')[1])} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Add Subtask</a>
-                    <a href="#" onClick={() => handleRowAction('Move Down', activeDropdown.split('-')[1])} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Move Down</a>
-                    <a href="#" onClick={() => handleRowAction('Delete', activeDropdown.split('-')[1])} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Delete</a>
-                    <a href="#" onClick={() => handleRowAction('Duplicate', activeDropdown.split('-')[1])} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Duplicate</a>
-                    <a href="#" onClick={() => handleRowAction('Add Dependency', activeDropdown.split('-')[1])} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Add Dependency</a>
+                    <button type="button" onClick={() => handleRowAction('Edit', activeDropdown.split('-')[1])} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit</button>
+                    <button type="button" onClick={() => handleRowAction('Add Subtask', activeDropdown.split('-')[1])} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Add Subtask</button>
+                    <button type="button" onClick={() => handleRowAction('Move Down', activeDropdown.split('-')[1])} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Move Down</button>
+                    <button type="button" onClick={() => handleRowAction('Delete', activeDropdown.split('-')[1])} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Delete</button>
+                    <button type="button" onClick={() => handleRowAction('Duplicate', activeDropdown.split('-')[1])} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Duplicate</button>
+                    <button type="button" onClick={() => handleRowAction('Add Dependency', activeDropdown.split('-')[1])} className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Add Dependency</button>
                 </div>
             )}
 

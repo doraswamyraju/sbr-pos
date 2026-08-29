@@ -41,6 +41,7 @@ const ProjectDetailsLayout = () => {
         if (id) {
             fetchProject();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     if (loading) return <div className="text-center p-4">Loading project details...</div>;

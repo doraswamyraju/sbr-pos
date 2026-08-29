@@ -72,7 +72,7 @@ const Settings = () => {
                 formData.append('signature_file', signatureFile);
             }
             
-            const response = await axios.post(`${API_BASE_URL}/server/api/company_info.php`, formData, {
+            await axios.post(`${API_BASE_URL}/server/api/company_info.php`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }
@@ -91,6 +91,7 @@ const Settings = () => {
     return (
         <div className="p-6 bg-white rounded-lg shadow-md">
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Settings</h1>
+            {message && <div className="mb-4 p-3 bg-blue-50 text-blue-700 rounded-lg">{message}</div>}
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="bg-gray-50 p-4 rounded-lg">
                     <h2 className="text-xl font-bold mb-4">Company Information</h2>

@@ -3,12 +3,11 @@ import { API_BASE_URL } from '../config';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { FaTrash, FaPlus, FaSearch } from 'react-icons/fa';
+import { FaTrash, FaSearch } from 'react-icons/fa';
 
 const EditSale = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const [sale, setSale] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [cart, setCart] = useState([]);
@@ -41,7 +40,6 @@ const EditSale = () => {
                 if (saleRes.data.success && saleRes.data.sale) {
                     const saleData = saleRes.data.sale;
                     const itemsData = saleRes.data.items || [];
-                    setSale(saleData);
                     setCart(itemsData.map(item => ({
                         id: item.product_id,
                         name: item.product_name,
@@ -54,16 +52,16 @@ const EditSale = () => {
                     const initialCustomer = customersRes.data.data.find(c => String(c.id) === String(saleData.customer_id));
                     if (initialCustomer) {
                         setSelectedCustomer(initialCustomer);
-                        setIsGstCustomer(initialCustomer.is_gst_registered == 1);
+                        setIsGstCustomer(Number(initialCustomer.is_gst_registered) === 1);
                         setGstInputValue(initialCustomer.gstin || '');
                     } else {
                         // If customer is 'Walk-in' or not found, use sale data
                         setSelectedCustomer({
                             full_name: saleData.customer_name || 'Walk-in Customer',
-                            is_gst_registered: saleData.is_gst_customer == 1,
+                            is_gst_registered: Number(saleData.is_gst_customer) === 1,
                             gstin: saleData.gst_number || ''
                         });
-                        setIsGstCustomer(saleData.is_gst_customer == 1);
+                        setIsGstCustomer(Number(saleData.is_gst_customer) === 1);
                         setGstInputValue(saleData.gst_number || '');
                     }
                 } else {
