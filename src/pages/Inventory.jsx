@@ -72,7 +72,10 @@ const Inventory = ({ currentUser }) => {
             {showNewProductModal && (
                 <Modal onClose={() => setShowNewProductModal(false)}>
                     <ProductForm
-                        onProductAdded={fetchData}
+                        onProductAdded={() => {
+                            setShowNewProductModal(false);
+                            fetchData();
+                        }}
                         initialData={null}
                     />
                 </Modal>

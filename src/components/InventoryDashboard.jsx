@@ -425,10 +425,18 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, suppliers, onDataC
 
       {/* Modals */}
       {isFormModalOpen && (
-        <Modal onClose={() => setIsFormModalOpen(false)}>
+        <Modal onClose={() => {
+          setIsFormModalOpen(false);
+          setCurrentProduct(null);
+        }}>
           <ProductForm
             initialData={currentProduct}
-            onProductAdded={onDataChange}
+            onProductAdded={() => {
+              setIsFormModalOpen(false);
+              setCurrentProduct(null);
+              fetchProducts();
+              if (onDataChange) onDataChange();
+            }}
           />
         </Modal>
       )}
