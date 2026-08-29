@@ -71,19 +71,37 @@ try {
             $category = trim($data['category'] ?? '');
             $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id']) && intval($data['supplier_id']) > 0) ? intval($data['supplier_id']) : null;
 
-            $stmt = $conn->prepare("INSERT INTO products (name, description, price, stock_level, sku, category, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            $cols = ["name", "description", "price", "stock_level", "category"];
+            $placeholders = ["?", "?", "?", "?", "?"];
+            $types = "ssdss";
+            $params = [$name, $description, $price, $stock_level, $category];
+
+            if ($sku !== null) {
+                $cols[] = "sku";
+                $placeholders[] = "?";
+                $types .= "s";
+                $params[] = $sku;
+            } else {
+                $cols[] = "sku";
+                $placeholders[] = "NULL";
+            }
+
+            if ($supplier_id !== null) {
+                $cols[] = "supplier_id";
+                $placeholders[] = "?";
+                $types .= "i";
+                $params[] = $supplier_id;
+            } else {
+                $cols[] = "supplier_id";
+                $placeholders[] = "NULL";
+            }
+
+            $sql = "INSERT INTO products (" . implode(", ", $cols) . ") VALUES (" . implode(", ", $placeholders) . ")";
+            $stmt = $conn->prepare($sql);
             if (!$stmt) {
                 throw new Exception($conn->error);
             }
-            $stmt->bind_param("ssdissi", 
-                $name,
-                $description,
-                $price,
-                $stock_level,
-                $sku,
-                $category,
-                $supplier_id
-            );
+            $stmt->bind_param($types, ...$params);
             
             if ($stmt->execute()) {
                 echo json_encode(["message" => "Product created successfully.", "id" => $conn->insert_id]);
@@ -118,20 +136,35 @@ try {
             $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id']) && intval($data['supplier_id']) > 0) ? intval($data['supplier_id']) : null;
             $id = intval($_GET['id']);
 
-            $stmt = $conn->prepare("UPDATE products SET name=?, description=?, price=?, stock_level=?, sku=?, category=?, supplier_id=? WHERE id=?");
+            $sql = "UPDATE products SET name=?, description=?, price=?, stock_level=?, category=?";
+            $types = "ssdss";
+            $params = [$name, $description, $price, $stock_level, $category];
+
+            if ($sku !== null) {
+                $sql .= ", sku=?";
+                $types .= "s";
+                $params[] = $sku;
+            } else {
+                $sql .= ", sku=NULL";
+            }
+
+            if ($supplier_id !== null) {
+                $sql .= ", supplier_id=?";
+                $types .= "i";
+                $params[] = $supplier_id;
+            } else {
+                $sql .= ", supplier_id=NULL";
+            }
+
+            $sql .= " WHERE id=?";
+            $types .= "i";
+            $params[] = $id;
+
+            $stmt = $conn->prepare($sql);
             if (!$stmt) {
                 throw new Exception($conn->error);
             }
-            $stmt->bind_param("ssdissii", 
-                $name,
-                $description,
-                $price,
-                $stock_level,
-                $sku,
-                $category,
-                $supplier_id,
-                $id
-            );
+            $stmt->bind_param($types, ...$params);
 
             if ($stmt->execute()) {
                 echo json_encode(["message" => "Product updated successfully."]);
