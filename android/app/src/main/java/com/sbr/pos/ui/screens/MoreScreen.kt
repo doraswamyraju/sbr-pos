@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -35,6 +36,32 @@ fun MoreScreen(
     authViewModel: AuthViewModel
 ) {
     var subScreen by remember { mutableStateOf(MoreSubScreen.GRID) }
+    var showLogoutConfirm by remember { mutableStateOf(false) }
+    val currentUser by authViewModel.currentUser.collectAsState()
+
+    if (showLogoutConfirm) {
+        AlertDialog(
+            onDismissRequest = { showLogoutConfirm = false },
+            title = { Text("Confirm Logout", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to log out of SBR POS?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutConfirm = false
+                        authViewModel.logout()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                ) {
+                    Text("Logout", color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showLogoutConfirm = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     if (subScreen != MoreSubScreen.GRID) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -95,35 +122,115 @@ fun MoreScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Text(
-                text = "More Modules & Tools",
-                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-            )
-            Text(
-                text = "Select a module to view records & manage setup",
-                fontSize = 12.sp,
-                color = Color.Gray
-            )
+            // Logged-in User Profile Header Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFF1F5F9)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF2563EB),
+                            modifier = Modifier.size(46.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = (currentUser?.displayName?.take(1) ?: "U").uppercase(),
+                                    color = Color.White,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column {
+                            Text(
+                                text = currentUser?.displayName ?: "User",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color(0xFF0F172A)
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = if (currentUser?.isAdmin == true) Color(0xFFDBEAFE) else Color(0xFFDCFCE7)
+                            ) {
+                                Text(
+                                    text = (currentUser?.role ?: "User").replaceFirstChar { it.uppercase() },
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (currentUser?.isAdmin == true) Color(0xFF1D4ED8) else Color(0xFF15803D),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // Direct Logout Action Button
+                    FilledTonalButton(
+                        onClick = { showLogoutConfirm = true },
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = Color(0xFFFEE2E2),
+                            contentColor = Color(0xFFDC2626)
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "Logout",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Logout", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            val menuItems = listOf(
+            Text(
+                text = "Modules & Management",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            val allMenuItems = mutableListOf(
                 MoreMenuItem("Sales History", "View past invoices & share", Icons.Default.ReceiptLong, Color(0xFF3B82F6), MoreSubScreen.SALES),
                 MoreMenuItem("Purchases Orders", "Supplier restock & PO logs", Icons.Default.ShoppingBag, Color(0xFF10B981), MoreSubScreen.PURCHASES),
-                MoreMenuItem("Leads & Prospects", "Track sales leads & pipeline", Icons.Default.FilterList, Color(0xFFEC4899), MoreSubScreen.LEADS),
                 MoreMenuItem("Customers Directory", "Manage customer profiles & debts", Icons.Default.People, Color(0xFF8B5CF6), MoreSubScreen.CUSTOMERS),
                 MoreMenuItem("Suppliers List", "Manage vendor & factory details", Icons.Default.LocalShipping, Color(0xFF10B981), MoreSubScreen.SUPPLIERS),
-                MoreMenuItem("Projects & Sites", "Manage worksites & tasks", Icons.Default.Assignment, Color(0xFF06B6D4), MoreSubScreen.PROJECTS),
-                MoreMenuItem("Reports & Charts", "Financial revenue & analytics", Icons.Default.BarChart, Color(0xFFF59E0B), MoreSubScreen.REPORTS),
-                MoreMenuItem("Settings & Users", "API setup & user roles", Icons.Default.Settings, Color(0xFF6B7280), MoreSubScreen.SETTINGS)
+                MoreMenuItem("Leads & Prospects", "Track sales leads & pipeline", Icons.Default.FilterList, Color(0xFFEC4899), MoreSubScreen.LEADS),
+                MoreMenuItem("Projects & Sites", "Manage worksites & tasks", Icons.Default.Assignment, Color(0xFF06B6D4), MoreSubScreen.PROJECTS)
             )
+
+            // Only show Reports and Settings if user is Admin
+            if (currentUser?.isAdmin == true) {
+                allMenuItems.add(MoreMenuItem("Reports & Charts", "Financial revenue & analytics", Icons.Default.BarChart, Color(0xFFF59E0B), MoreSubScreen.REPORTS))
+                allMenuItems.add(MoreMenuItem("Settings & Users", "API setup & user roles", Icons.Default.Settings, Color(0xFF6B7280), MoreSubScreen.SETTINGS))
+            }
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(menuItems) { item ->
+                items(allMenuItems) { item ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

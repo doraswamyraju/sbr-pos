@@ -55,11 +55,19 @@ if ($method === 'POST') {
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
             if (password_verify($password, $user['password'])) {
-                echo json_encode(["success" => true, "message" => "Login successful.", "user" => [
-                    "id" => $user['id'],
-                    "full_name" => $user['full_name'],
-                    "role" => $user['role']
-                ]]);
+                $cleanRole = strtolower(str_replace([' ', '_', '-'], '', $user['role']));
+                echo json_encode([
+                    "success" => true,
+                    "message" => "Login successful.",
+                    "user" => [
+                        "id" => (string)$user['id'],
+                        "username" => $user['username'],
+                        "full_name" => $user['full_name'],
+                        "name" => $user['full_name'],
+                        "role" => $user['role'],
+                        "is_admin" => ($cleanRole === 'admin')
+                    ]
+                ]);
             } else {
                 echo json_encode(["success" => false, "message" => "Incorrect password."]);
             }

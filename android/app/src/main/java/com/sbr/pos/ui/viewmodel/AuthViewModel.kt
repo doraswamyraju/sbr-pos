@@ -22,30 +22,29 @@ class AuthViewModel : ViewModel() {
     val loginError: StateFlow<String?> = _loginError.asStateFlow()
 
     fun login(username: String, password: String) {
+        val cleanUsername = username.trim()
         viewModelScope.launch {
             _isLoading.value = true
             _loginError.value = null
             try {
                 val response = RetrofitClient.apiService.login(
-                    mapOf("username" to username, "password" to password)
+                    mapOf("username" to cleanUsername, "password" to password)
                 )
-                if (response.isSuccessful && response.body()?.success == true && response.body()?.user != null) {
-                    _currentUser.value = response.body()?.user
+                val body = response.body()
+                if (response.isSuccessful && body?.success == true && body.user != null) {
+                    _currentUser.value = body.user
                 } else {
-                    // Fallback to local auth check for demo/offline
-                    val sampleUsers = MockDataProvider.getSampleUsers()
-                    val match = sampleUsers.find { it.username.equals(username, ignoreCase = true) }
-                    if (match != null || username.isNotBlank()) {
-                        _currentUser.value = match ?: User("99", username, username.replaceFirstChar { it.uppercase() }, "$username@sbrpos.com", "admin", true)
-                    } else {
-                        _loginError.value = response.body()?.message ?: "Invalid username or password"
-                    }
+                    _loginError.value = body?.message ?: "Invalid username or password"
                 }
             } catch (e: Exception) {
-                // Fallback for offline mode
+                // Fallback for offline mode if matching mock user exists
                 val sampleUsers = MockDataProvider.getSampleUsers()
-                val match = sampleUsers.find { it.username.equals(username, ignoreCase = true) }
-                _currentUser.value = match ?: User("99", username, username.replaceFirstChar { it.uppercase() }, "$username@sbrpos.com", "admin", true)
+                val match = sampleUsers.find { it.username.equals(cleanUsername, ignoreCase = true) }
+                if (match != null) {
+                    _currentUser.value = match
+                } else {
+                    _loginError.value = "Failed to connect to server: ${e.localizedMessage ?: "Network error"}"
+                }
             } finally {
                 _isLoading.value = false
             }
@@ -54,6 +53,7 @@ class AuthViewModel : ViewModel() {
 
     fun logout() {
         _currentUser.value = null
+        _loginError.value = null
     }
 
     fun clearError() {

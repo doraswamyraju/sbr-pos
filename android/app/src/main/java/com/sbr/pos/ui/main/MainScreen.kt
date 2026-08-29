@@ -1,11 +1,17 @@
 package com.sbr.pos.ui.main
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.sbr.pos.ui.components.BottomNavBar
 import com.sbr.pos.ui.components.NavTab
@@ -41,6 +47,7 @@ fun MainScreen(
     var showCustomerSelect by remember { mutableStateOf(false) }
     var scannedProductPending by remember { mutableStateOf<Product?>(null) }
     var showQuantityInput by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     val customers by customersViewModel.customers.collectAsState()
     val products by posViewModel.products.collectAsState()
@@ -59,10 +66,96 @@ fun MainScreen(
         }
     }
 
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = { Text("Confirm Logout", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to log out of SBR POS?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutDialog = false
+                        authViewModel.logout()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                ) {
+                    Text("Logout", color = Color.White)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showLogoutDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     if (currentUser == null) {
         LoginScreen(authViewModel = authViewModel)
     } else {
         Scaffold(
+            topBar = {
+                Surface(
+                    color = Color.White,
+                    shadowElevation = 3.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .statusBarsPadding()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Sri Balaji Renewables",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 17.sp,
+                            color = Color(0xFF1E3A8A)
+                        )
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (currentUser?.isAdmin == true) Color(0xFFDBEAFE) else Color(0xFFDCFCE7)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = currentUser?.displayName ?: "User",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = if (currentUser?.isAdmin == true) Color(0xFF1D4ED8) else Color(0xFF15803D)
+                                    )
+                                    Text(
+                                        text = " (${(currentUser?.role ?: "User").replaceFirstChar { it.uppercase() }})",
+                                        fontWeight = FontWeight.Medium,
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF475569)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            IconButton(
+                                onClick = { showLogoutDialog = true },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Logout,
+                                    contentDescription = "Logout",
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
             bottomBar = {
                 BottomNavBar(
                     currentTab = currentTab,

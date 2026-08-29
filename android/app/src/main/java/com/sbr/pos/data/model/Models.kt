@@ -6,11 +6,14 @@ data class User(
     val id: String? = null,
     val username: String = "",
     val name: String? = null,
+    @SerializedName("full_name") val fullName: String? = null,
     val email: String? = null,
     val role: String = "user",
     @SerializedName("is_admin") val isAdmin: Boolean = false,
     val token: String? = null
-)
+) {
+    val displayName: String get() = fullName ?: name ?: username.ifBlank { "User" }
+}
 
 data class Product(
     val id: String = "",

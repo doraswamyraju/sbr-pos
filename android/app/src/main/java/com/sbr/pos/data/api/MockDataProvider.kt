@@ -86,9 +86,9 @@ object MockDataProvider {
     )
 
     fun getSampleUsers(): List<User> = listOf(
-        User("1", "admin", "System Administrator", "admin@sbrpos.com", "admin", true),
-        User("2", "sales", "Sales Officer", "sales@sbrpos.com", "user", false),
-        User("3", "tech", "Installation Lead", "tech@sbrpos.com", "user", false)
+        User("1", "admin", "System Administrator", "System Administrator", "admin@sbrpos.com", "admin", true),
+        User("2", "sales", "Sales Officer", "Sales Officer", "sales@sbrpos.com", "store_incharge", false),
+        User("3", "tech", "Installation Lead", "Installation Lead", "tech@sbrpos.com", "user", false)
     )
 
     fun getSampleSuppliers(): List<Supplier> = listOf(
