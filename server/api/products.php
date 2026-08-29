@@ -22,137 +22,155 @@ include '../db_connect.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-switch ($method) {
-    case 'GET':
-        if (isset($_GET['id'])) {
-            $stmt = $conn->prepare("SELECT id, name, price, stock_level, description, sku, category, supplier_id FROM products WHERE id = ?");
-            $stmt->bind_param("i", $_GET['id']);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            if ($result->num_rows > 0) {
-                echo json_encode($result->fetch_assoc());
+try {
+    switch ($method) {
+        case 'GET':
+            if (isset($_GET['id'])) {
+                $stmt = $conn->prepare("SELECT id, name, price, stock_level, description, sku, category, supplier_id FROM products WHERE id = ?");
+                if (!$stmt) {
+                    throw new Exception($conn->error);
+                }
+                $stmt->bind_param("i", $_GET['id']);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                if ($result->num_rows > 0) {
+                    echo json_encode($result->fetch_assoc());
+                } else {
+                    http_response_code(404);
+                    echo json_encode(["message" => "Product not found."]);
+                }
+                $stmt->close();
             } else {
-                http_response_code(404);
-                echo json_encode(["message" => "Product not found."]);
+                $sql = "SELECT id, name, price, stock_level, description, sku, category, supplier_id FROM products";
+                $result = $conn->query($sql);
+                $products = [];
+                if ($result && $result->num_rows > 0) {
+                    while($row = $result->fetch_assoc()) {
+                        $row['price'] = floatval($row['price'] ?? 0.00);
+                        $products[] = $row;
+                    }
+                }
+                echo json_encode($products);
+            }
+            break;
+
+        case 'POST':
+            $data = json_decode(file_get_contents("php://input"), true);
+            if ($data === null) {
+                http_response_code(400);
+                echo json_encode(["error" => "Invalid JSON data received."]);
+                exit;
+            }
+            
+            $name = trim($data['name'] ?? '');
+            $description = trim($data['description'] ?? '');
+            $price = isset($data['price']) && $data['price'] !== '' ? floatval($data['price']) : 0.0;
+            $stock_level = isset($data['stock_level']) && $data['stock_level'] !== '' ? intval($data['stock_level']) : 0;
+            $sku_raw = trim($data['sku'] ?? '');
+            $sku = ($sku_raw !== '') ? $sku_raw : null;
+            $category = trim($data['category'] ?? '');
+            $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id']) && intval($data['supplier_id']) > 0) ? intval($data['supplier_id']) : null;
+
+            $stmt = $conn->prepare("INSERT INTO products (name, description, price, stock_level, sku, category, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            if (!$stmt) {
+                throw new Exception($conn->error);
+            }
+            $stmt->bind_param("ssdissi", 
+                $name,
+                $description,
+                $price,
+                $stock_level,
+                $sku,
+                $category,
+                $supplier_id
+            );
+            
+            if ($stmt->execute()) {
+                echo json_encode(["message" => "Product created successfully.", "id" => $conn->insert_id]);
+            } else {
+                http_response_code(500);
+                echo json_encode(["error" => "Error: " . $stmt->error]);
             }
             $stmt->close();
-        } else {
-            $sql = "SELECT id, name, price, stock_level, description, sku, category, supplier_id FROM products";
-            $result = $conn->query($sql);
-            $products = [];
-            if ($result && $result->num_rows > 0) {
-                while($row = $result->fetch_assoc()) {
-                    $row['price'] = floatval($row['price'] ?? 0.00);
-                    $products[] = $row;
-                }
+            break;
+
+        case 'PUT':
+            $data = json_decode(file_get_contents("php://input"), true);
+            if ($data === null) {
+                http_response_code(400);
+                echo json_encode(["error" => "Invalid JSON data received."]);
+                exit;
             }
-            echo json_encode($products);
-        }
-        break;
 
-    case 'POST':
-        $data = json_decode(file_get_contents("php://input"), true);
-        if ($data === null) {
-            http_response_code(400);
-            echo json_encode(["error" => "Invalid JSON data received."]);
-            exit;
-        }
+            if (!isset($_GET['id'])) {
+                http_response_code(400);
+                echo json_encode(["error" => "Product ID is missing."]);
+                exit;
+            }
+
+            $name = trim($data['name'] ?? '');
+            $description = trim($data['description'] ?? '');
+            $price = isset($data['price']) && $data['price'] !== '' ? floatval($data['price']) : 0.0;
+            $stock_level = isset($data['stock_level']) && $data['stock_level'] !== '' ? intval($data['stock_level']) : 0;
+            $sku_raw = trim($data['sku'] ?? '');
+            $sku = ($sku_raw !== '') ? $sku_raw : null;
+            $category = trim($data['category'] ?? '');
+            $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id']) && intval($data['supplier_id']) > 0) ? intval($data['supplier_id']) : null;
+            $id = intval($_GET['id']);
+
+            $stmt = $conn->prepare("UPDATE products SET name=?, description=?, price=?, stock_level=?, sku=?, category=?, supplier_id=? WHERE id=?");
+            if (!$stmt) {
+                throw new Exception($conn->error);
+            }
+            $stmt->bind_param("ssdissii", 
+                $name,
+                $description,
+                $price,
+                $stock_level,
+                $sku,
+                $category,
+                $supplier_id,
+                $id
+            );
+
+            if ($stmt->execute()) {
+                echo json_encode(["message" => "Product updated successfully."]);
+            } else {
+                http_response_code(500);
+                echo json_encode(["error" => "Error: " . $stmt->error]);
+            }
+            $stmt->close();
+            break;
         
-        $name = trim($data['name'] ?? '');
-        $description = trim($data['description'] ?? '');
-        $price = isset($data['price']) && $data['price'] !== '' ? floatval($data['price']) : 0.0;
-        $stock_level = isset($data['stock_level']) && $data['stock_level'] !== '' ? intval($data['stock_level']) : 0;
-        $sku = trim($data['sku'] ?? '');
-        $category = trim($data['category'] ?? '');
-        $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id'])) ? intval($data['supplier_id']) : null;
+        case 'DELETE':
+            if (!isset($_GET['id'])) {
+                http_response_code(400);
+                echo json_encode(["error" => "Product ID is missing."]);
+                exit;
+            }
 
-        $stmt = $conn->prepare("INSERT INTO products (name, description, price, stock_level, sku, category, supplier_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssdissi", 
-            $name,
-            $description,
-            $price,
-            $stock_level,
-            $sku,
-            $category,
-            $supplier_id
-        );
-        
-        if ($stmt->execute()) {
-            echo json_encode(["message" => "Product created successfully.", "id" => $conn->insert_id]);
-        } else {
-            http_response_code(500);
-            echo json_encode(["error" => "Error: " . $stmt->error]);
-        }
-        $stmt->close();
-        break;
+            $stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
+            if (!$stmt) {
+                throw new Exception($conn->error);
+            }
+            $stmt->bind_param("i", $_GET['id']);
+            if ($stmt->execute()) {
+                echo json_encode(["message" => "Product deleted successfully."]);
+            } else {
+                http_response_code(500);
+                echo json_encode(["error" => "Error: " . $stmt->error]);
+            }
+            $stmt->close();
+            break;
 
-    case 'PUT':
-        $data = json_decode(file_get_contents("php://input"), true);
-        if ($data === null) {
-            http_response_code(400);
-            echo json_encode(["error" => "Invalid JSON data received."]);
-            exit;
-        }
-
-        if (!isset($_GET['id'])) {
-            http_response_code(400);
-            echo json_encode(["error" => "Product ID is missing."]);
-            exit;
-        }
-
-        $name = trim($data['name'] ?? '');
-        $description = trim($data['description'] ?? '');
-        $price = isset($data['price']) && $data['price'] !== '' ? floatval($data['price']) : 0.0;
-        $stock_level = isset($data['stock_level']) && $data['stock_level'] !== '' ? intval($data['stock_level']) : 0;
-        $sku = trim($data['sku'] ?? '');
-        $category = trim($data['category'] ?? '');
-        $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id'])) ? intval($data['supplier_id']) : null;
-        $id = intval($_GET['id']);
-
-        $stmt = $conn->prepare("UPDATE products SET name=?, description=?, price=?, stock_level=?, sku=?, category=?, supplier_id=? WHERE id=?");
-        $stmt->bind_param("ssdissii", 
-            $name,
-            $description,
-            $price,
-            $stock_level,
-            $sku,
-            $category,
-            $supplier_id,
-            $id
-        );
-
-        if ($stmt->execute()) {
-            echo json_encode(["message" => "Product updated successfully."]);
-        } else {
-            http_response_code(500);
-            echo json_encode(["error" => "Error: " . $stmt->error]);
-        }
-        $stmt->close();
-        break;
-    
-    case 'DELETE':
-        // Handle deleting a product
-        if (!isset($_GET['id'])) {
-            http_response_code(400);
-            echo json_encode(["error" => "Product ID is missing."]);
-            exit;
-        }
-
-        $stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
-        $stmt->bind_param("i", $_GET['id']);
-        if ($stmt->execute()) {
-            echo json_encode(["message" => "Product deleted successfully."]);
-        } else {
-            http_response_code(500);
-            echo json_encode(["error" => "Error: " . $stmt->error]);
-        }
-        $stmt->close();
-        break;
-
-    default:
-        http_response_code(405);
-        echo json_encode(["message" => "Method not allowed."]);
-        break;
+        default:
+            http_response_code(405);
+            echo json_encode(["message" => "Method not allowed."]);
+            break;
+    }
+} catch (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(["error" => $e->getMessage()]);
 }
 
 $conn->close();

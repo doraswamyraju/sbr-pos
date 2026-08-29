@@ -53,7 +53,8 @@ const ProductForm = ({ onProductAdded, initialData }) => {
       }
     } catch (error) {
       console.error('Error submitting form:', error);
-      alert('Failed to save product. Please try again.');
+      const serverMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to save product. Please try again.';
+      alert(`Failed to save product: ${serverMessage}`);
     }
   };
 
