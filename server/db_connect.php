@@ -19,6 +19,7 @@ if (file_exists(__DIR__ . '/db_config.php')) {
 
 if (!$conn || $conn->connect_error) {
     $credentials = [
+        ['user' => 'root', 'pass' => 'Rajugari@2026', 'db' => 'pos_system'],
         ['user' => 'root', 'pass' => 'BOHPM6139n@', 'db' => 'pos_system'],
         ['user' => 'root', 'pass' => '', 'db' => 'pos_system'],
         ['user' => 'rajugda1_sbr', 'pass' => 'BOHPM6139n@', 'db' => 'pos_system'],
