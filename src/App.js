@@ -117,7 +117,7 @@ function App() {
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 w-full ${mainMarginClass}`}>
         {!isSalesPage && <Header user={currentUser} onLogout={handleLogout} sidebarExpanded={sidebarExpanded} />}
         <main className={`flex-grow w-full ${isSalesPage ? 'p-0' : 'p-4 md:p-6'}`}>
-          <div className="max-w-7xl mx-auto w-full">
+          <div className={isSalesPage ? "w-full" : "max-w-7xl mx-auto w-full"}>
             <Routes>{getRoutes()}</Routes>
           </div>
         </main>
