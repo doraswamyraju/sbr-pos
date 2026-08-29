@@ -90,64 +90,6 @@ fun PosScreen(
             .fillMaxSize()
             .background(Color(0xFFF3F4F6))
     ) {
-        // Logo Header Bar (Matches Web Mobile View)
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = Color.White,
-            shadowElevation = 2.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.logo),
-                    contentDescription = "Logo",
-                    modifier = Modifier.size(36.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "Sri Balaji Renewables",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = TextDark
-                    )
-                    Text(
-                        text = "POS",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = PrimaryBlue
-                    )
-                }
-                Column(
-                    horizontalAlignment = Alignment.End,
-                    modifier = Modifier.padding(end = 8.dp)
-                ) {
-                    Text("Admin User", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = TextDark)
-                    Text("admin", fontSize = 10.sp, color = TextMuted)
-                }
-                Surface(
-                    color = PrimaryBlue,
-                    shape = CircleShape,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("A", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    }
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    Icons.Default.ExitToApp,
-                    contentDescription = "Logout",
-                    tint = Color.Gray,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-
         Box(
             modifier = Modifier
                 .weight(1f)

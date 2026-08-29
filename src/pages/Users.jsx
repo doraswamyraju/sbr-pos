@@ -266,12 +266,20 @@ const Users = () => {
               <input type="text" id="username" value={userData.username} onChange={(e) => setUserData({...userData, username: e.target.value})} required className="w-full p-2.5 border rounded-lg" />
             </div>
 
-            {!currentUser && (
-              <div>
-                <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-                <input type="password" id="password" value={userData.password} onChange={(e) => setUserData({...userData, password: e.target.value})} required className="w-full p-2.5 border rounded-lg" />
-              </div>
-            )}
+            <div>
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-1">
+                {currentUser ? "Update Password (leave blank to keep current password)" : "Password"}
+              </label>
+              <input 
+                type="password" 
+                id="password" 
+                value={userData.password || ''} 
+                onChange={(e) => setUserData({...userData, password: e.target.value})} 
+                placeholder={currentUser ? "Enter new password to update" : "Enter password"}
+                required={!currentUser} 
+                className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" 
+              />
+            </div>
 
             <div>
               <label htmlFor="role" className="block text-sm font-semibold text-gray-700 mb-1">System Role</label>

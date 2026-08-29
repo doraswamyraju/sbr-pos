@@ -1,5 +1,6 @@
 package com.sbr.pos.ui.main
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -9,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -104,54 +106,77 @@ fun MainScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .statusBarsPadding()
-                            .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = "Sri Balaji Renewables",
-                            fontWeight = FontWeight.Black,
-                            fontSize = 17.sp,
-                            color = Color(0xFF1E3A8A)
+                        Image(
+                            painter = painterResource(id = com.sbr.pos.R.drawable.logo),
+                            contentDescription = "Logo",
+                            modifier = Modifier.size(36.dp)
                         )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Sri Balaji Renewables",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF1E3A8A),
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "POS",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 12.sp,
+                                color = Color(0xFF2563EB)
+                            )
+                        }
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Surface(
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (currentUser?.isAdmin == true) Color(0xFFDBEAFE) else Color(0xFFDCFCE7)
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        text = currentUser?.displayName ?: "User",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp,
-                                        color = if (currentUser?.isAdmin == true) Color(0xFF1D4ED8) else Color(0xFF15803D)
-                                    )
-                                    Text(
-                                        text = " (${(currentUser?.role ?: "User").replaceFirstChar { it.uppercase() }})",
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = 11.sp,
-                                        color = Color(0xFF475569)
-                                    )
-                                }
-                            }
+                        Column(
+                            horizontalAlignment = Alignment.End,
+                            modifier = Modifier.padding(end = 6.dp)
+                        ) {
+                            Text(
+                                text = currentUser?.displayName ?: "User",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = Color(0xFF1F2937),
+                                maxLines = 1
+                            )
+                            Text(
+                                text = (currentUser?.role ?: "User").replaceFirstChar { it.uppercase() },
+                                fontSize = 10.sp,
+                                color = if (currentUser?.isAdmin == true) Color(0xFF2563EB) else Color(0xFF16A34A),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
 
-                            Spacer(modifier = Modifier.width(6.dp))
-
-                            IconButton(
-                                onClick = { showLogoutDialog = true },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Logout,
-                                    contentDescription = "Logout",
-                                    tint = Color(0xFFEF4444),
-                                    modifier = Modifier.size(18.dp)
+                        Surface(
+                            color = if (currentUser?.isAdmin == true) Color(0xFF2563EB) else Color(0xFF16A34A),
+                            shape = androidx.compose.foundation.shape.CircleShape,
+                            modifier = Modifier.size(30.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = (currentUser?.displayName ?: "U").take(1).uppercase(),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
                                 )
                             }
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        IconButton(
+                            onClick = { showLogoutDialog = true },
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Logout,
+                                contentDescription = "Logout",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                 }
