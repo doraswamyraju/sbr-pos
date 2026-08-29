@@ -37,16 +37,14 @@ const Inventory = ({ currentUser }) => {
     if (error) return <div className="text-center p-4 text-red-600">{error}</div>;
 
     return (
-        <div className="min-h-screen bg-gray-100">
-            <main className="w-full p-4 pb-28 md:pb-6 md:p-6">
-                <InventoryDashboard
-                    onRecordPurchase={() => setShowPurchaseModal(true)}
-                    products={products}
-                    suppliers={suppliers}
-                    onDataChange={fetchData}
-                    onAddProduct={() => setShowNewProductModal(true)}
-                />
-            </main>
+        <div className="w-full pb-20 md:pb-6">
+            <InventoryDashboard
+                onRecordPurchase={() => setShowPurchaseModal(true)}
+                products={products}
+                suppliers={suppliers}
+                onDataChange={fetchData}
+                onAddProduct={() => setShowNewProductModal(true)}
+            />
 
             {showPurchaseModal && (
                 <PurchaseManagement

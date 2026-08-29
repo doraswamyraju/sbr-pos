@@ -129,7 +129,7 @@ const SalesDesktop = (props) => {
       </header>
 
       {/* Main POS Workspace */}
-      <div className="flex-1 flex gap-4 p-4 overflow-hidden h-[calc(100vh-56px)]">
+      <div className="flex-1 flex gap-4 p-4 overflow-hidden min-h-0">
         
         {/* Left Section: Product Catalog & Search (REDESIGNED) */}
         <div className="flex-1 flex flex-col bg-slate-800/50 backdrop-blur border border-slate-700/60 rounded-2xl p-4 shadow-2xl overflow-hidden min-w-0">

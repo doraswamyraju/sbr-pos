@@ -48,17 +48,11 @@ th, td {
   left: 256px;
 }
 
-/* Add padding to page main view so header does not overlay content */
-main {
-  margin-top: 64px;
-}
-@media (max-width: 767px) {
-  .header-fixed {
-    left: 0;
-  }
-  main {
-    margin-top: 0;
-  }
+/* Clean layout utilities */
+table {
+  table-layout: auto;
+  width: 100%;
+  border-collapse: collapse;
 }
 
 /* Sidebar scrollable layout */
