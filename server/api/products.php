@@ -19,6 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 header('Content-Type: application/json; charset=utf-8');
 
 include '../db_connect.php';
+/** @var mysqli $conn */
+include '../sms_sync_helper.php';
 
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -26,7 +28,7 @@ try {
     switch ($method) {
         case 'GET':
             if (isset($_GET['id'])) {
-                $stmt = $conn->prepare("SELECT id, name, price, stock_level, description, sku, category, supplier_id FROM products WHERE id = ?");
+                $stmt = $conn->prepare("SELECT id, name, price, stock_level, min_stock_level, description, sku, category, supplier_id FROM products WHERE id = ?");
                 if (!$stmt) {
                     throw new Exception($conn->error);
                 }
@@ -34,19 +36,25 @@ try {
                 $stmt->execute();
                 $result = $stmt->get_result();
                 if ($result->num_rows > 0) {
-                    echo json_encode($result->fetch_assoc());
+                    $row = $result->fetch_assoc();
+                    $row['price'] = floatval($row['price'] ?? 0.00);
+                    $row['stock_level'] = intval($row['stock_level'] ?? 0);
+                    $row['min_stock_level'] = intval($row['min_stock_level'] ?? 0);
+                    echo json_encode($row);
                 } else {
                     http_response_code(404);
                     echo json_encode(["message" => "Product not found."]);
                 }
                 $stmt->close();
             } else {
-                $sql = "SELECT id, name, price, stock_level, description, sku, category, supplier_id FROM products";
+                $sql = "SELECT id, name, price, stock_level, min_stock_level, description, sku, category, supplier_id FROM products";
                 $result = $conn->query($sql);
                 $products = [];
                 if ($result && $result->num_rows > 0) {
                     while($row = $result->fetch_assoc()) {
                         $row['price'] = floatval($row['price'] ?? 0.00);
+                        $row['stock_level'] = intval($row['stock_level'] ?? 0);
+                        $row['min_stock_level'] = intval($row['min_stock_level'] ?? 0);
                         $products[] = $row;
                     }
                 }
@@ -66,17 +74,23 @@ try {
             $description = trim($data['description'] ?? '');
             $price = isset($data['price']) && $data['price'] !== '' ? floatval($data['price']) : 0.0;
             $stock_level = isset($data['stock_level']) && $data['stock_level'] !== '' ? intval($data['stock_level']) : 0;
-            $sku_raw = trim($data['sku'] ?? '');
-            $sku = ($sku_raw !== '') ? $sku_raw : null;
+            $min_stock_level = isset($data['min_stock_level']) && $data['min_stock_level'] !== '' ? intval($data['min_stock_level']) : 0;
+            $sku = trim($data['sku'] ?? '');
             $category = trim($data['category'] ?? '');
             $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id']) && intval($data['supplier_id']) > 0) ? intval($data['supplier_id']) : null;
 
-            $cols = ["name", "description", "price", "stock_level", "category"];
-            $placeholders = ["?", "?", "?", "?", "?"];
-            $types = "ssdss";
-            $params = [$name, $description, $price, $stock_level, $category];
+            if (empty($name)) {
+                http_response_code(400);
+                echo json_encode(["error" => "Product name is required."]);
+                exit;
+            }
 
-            if ($sku !== null) {
+            $cols = ["name", "description", "price", "stock_level", "min_stock_level", "category"];
+            $placeholders = ["?", "?", "?", "?", "?", "?"];
+            $types = "ssdiis";
+            $params = [$name, $description, $price, $stock_level, $min_stock_level, $category];
+
+            if ($sku !== '') {
                 $cols[] = "sku";
                 $placeholders[] = "?";
                 $types .= "s";
@@ -104,7 +118,20 @@ try {
             $stmt->bind_param($types, ...$params);
             
             if ($stmt->execute()) {
-                echo json_encode(["message" => "Product created successfully.", "id" => $conn->insert_id]);
+                $newId = $conn->insert_id;
+                // Asynchronously / quickly push to SBR SMS
+                sync_single_product_to_sms([
+                    'id' => $newId,
+                    'pos_product_id' => $newId,
+                    'name' => $name,
+                    'price' => $price,
+                    'stock_level' => $stock_level,
+                    'min_stock_level' => $min_stock_level,
+                    'category' => $category,
+                    'sku' => $sku,
+                    'description' => $description
+                ], 'upsert');
+                echo json_encode(["message" => "Product created successfully.", "id" => $newId]);
             } else {
                 http_response_code(500);
                 echo json_encode(["error" => "Error: " . $stmt->error]);
@@ -126,53 +153,138 @@ try {
                 exit;
             }
 
-            $name = trim($data['name'] ?? '');
-            $description = trim($data['description'] ?? '');
-            $price = isset($data['price']) && $data['price'] !== '' ? floatval($data['price']) : 0.0;
-            $stock_level = isset($data['stock_level']) && $data['stock_level'] !== '' ? intval($data['stock_level']) : 0;
-            $sku_raw = trim($data['sku'] ?? '');
-            $sku = ($sku_raw !== '') ? $sku_raw : null;
-            $category = trim($data['category'] ?? '');
-            $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id']) && intval($data['supplier_id']) > 0) ? intval($data['supplier_id']) : null;
             $id = intval($_GET['id']);
 
-            $sql = "UPDATE products SET name=?, description=?, price=?, stock_level=?, category=?";
-            $types = "ssdss";
-            $params = [$name, $description, $price, $stock_level, $category];
+            // Check if partial bulk update vs full product update
+            $hasName = isset($data['name']);
+            if ($hasName) {
+                $name = trim($data['name'] ?? '');
+                $description = trim($data['description'] ?? '');
+                $price = isset($data['price']) && $data['price'] !== '' ? floatval($data['price']) : 0.0;
+                $stock_level = isset($data['stock_level']) && $data['stock_level'] !== '' ? intval($data['stock_level']) : 0;
+                $min_stock_level = isset($data['min_stock_level']) && $data['min_stock_level'] !== '' ? intval($data['min_stock_level']) : 0;
+                $sku_raw = trim($data['sku'] ?? '');
+                $sku = ($sku_raw !== '') ? $sku_raw : null;
+                $category = trim($data['category'] ?? '');
+                $supplier_id = (!empty($data['supplier_id']) && is_numeric($data['supplier_id']) && intval($data['supplier_id']) > 0) ? intval($data['supplier_id']) : null;
 
-            if ($sku !== null) {
-                $sql .= ", sku=?";
-                $types .= "s";
-                $params[] = $sku;
-            } else {
-                $sql .= ", sku=NULL";
-            }
+                $sql = "UPDATE products SET name=?, description=?, price=?, stock_level=?, min_stock_level=?, category=?";
+                $types = "ssdiis";
+                $params = [$name, $description, $price, $stock_level, $min_stock_level, $category];
 
-            if ($supplier_id !== null) {
-                $sql .= ", supplier_id=?";
+                if ($sku !== null) {
+                    $sql .= ", sku=?";
+                    $types .= "s";
+                    $params[] = $sku;
+                } else {
+                    $sql .= ", sku=NULL";
+                }
+
+                if ($supplier_id !== null) {
+                    $sql .= ", supplier_id=?";
+                    $types .= "i";
+                    $params[] = $supplier_id;
+                } else {
+                    $sql .= ", supplier_id=NULL";
+                }
+
+                $sql .= " WHERE id=?";
                 $types .= "i";
-                $params[] = $supplier_id;
+                $params[] = $id;
+
+                $stmt = $conn->prepare($sql);
+                if (!$stmt) {
+                    throw new Exception($conn->error);
+                }
+                $stmt->bind_param($types, ...$params);
+
+                if ($stmt->execute()) {
+                    // Sync full update to SMS
+                    sync_single_product_to_sms([
+                        'id' => $id,
+                        'pos_product_id' => $id,
+                        'name' => $name,
+                        'price' => $price,
+                        'stock_level' => $stock_level,
+                        'min_stock_level' => $min_stock_level,
+                        'category' => $category,
+                        'sku' => $sku ?: '',
+                        'description' => $description
+                    ], 'upsert');
+                    echo json_encode(["message" => "Product updated successfully."]);
+                } else {
+                    http_response_code(500);
+                    echo json_encode(["error" => "Error: " . $stmt->error]);
+                }
+                $stmt->close();
             } else {
-                $sql .= ", supplier_id=NULL";
-            }
+                // Partial update (e.g. bulk edit or delta)
+                $setClauses = [];
+                $params = [];
+                $types = "";
 
-            $sql .= " WHERE id=?";
-            $types .= "i";
-            $params[] = $id;
+                if (isset($data['category']) && $data['category'] !== '') {
+                    $setClauses[] = "category = ?";
+                    $types .= "s";
+                    $params[] = $data['category'];
+                }
+                if (isset($data['price']) && is_numeric($data['price'])) {
+                    $setClauses[] = "price = ?";
+                    $types .= "d";
+                    $params[] = floatval($data['price']);
+                }
+                if (isset($data['stock']) && is_numeric($data['stock'])) {
+                    $setClauses[] = "stock_level = ?";
+                    $types .= "i";
+                    $params[] = intval($data['stock']);
+                } else if (isset($data['stock_delta']) && is_numeric($data['stock_delta'])) {
+                    $setClauses[] = "stock_level = stock_level + ?";
+                    $types .= "i";
+                    $params[] = intval($data['stock_delta']);
+                }
+                if (isset($data['min_stock_level']) && is_numeric($data['min_stock_level'])) {
+                    $setClauses[] = "min_stock_level = ?";
+                    $types .= "i";
+                    $params[] = intval($data['min_stock_level']);
+                }
 
-            $stmt = $conn->prepare($sql);
-            if (!$stmt) {
-                throw new Exception($conn->error);
-            }
-            $stmt->bind_param($types, ...$params);
+                if (empty($setClauses)) {
+                    echo json_encode(["message" => "No fields to update."]);
+                    break;
+                }
 
-            if ($stmt->execute()) {
-                echo json_encode(["message" => "Product updated successfully."]);
-            } else {
-                http_response_code(500);
-                echo json_encode(["error" => "Error: " . $stmt->error]);
+                $sql = "UPDATE products SET " . implode(", ", $setClauses) . " WHERE id = ?";
+                $types .= "i";
+                $params[] = $id;
+
+                $stmt = $conn->prepare($sql);
+                if (!$stmt) {
+                    throw new Exception($conn->error);
+                }
+                $stmt->bind_param($types, ...$params);
+                if ($stmt->execute()) {
+                    // Refetch updated row and sync to SMS
+                    $refetch = $conn->query("SELECT id, name, price, stock_level, min_stock_level, category, sku, description FROM products WHERE id = " . $id);
+                    if ($refetch && $row = $refetch->fetch_assoc()) {
+                        sync_single_product_to_sms([
+                            'id' => intval($row['id']),
+                            'pos_product_id' => intval($row['id']),
+                            'name' => $row['name'],
+                            'price' => floatval($row['price'] ?? 0),
+                            'stock_level' => intval($row['stock_level'] ?? 0),
+                            'min_stock_level' => intval($row['min_stock_level'] ?? 0),
+                            'category' => $row['category'] ?? 'General',
+                            'sku' => $row['sku'] ?? '',
+                            'description' => $row['description'] ?? ''
+                        ], 'upsert');
+                    }
+                    echo json_encode(["message" => "Product updated successfully."]);
+                } else {
+                    http_response_code(500);
+                    echo json_encode(["error" => "Error: " . $stmt->error]);
+                }
+                $stmt->close();
             }
-            $stmt->close();
             break;
         
         case 'DELETE':
@@ -182,12 +294,15 @@ try {
                 exit;
             }
 
+            $deleteId = intval($_GET['id']);
             $stmt = $conn->prepare("DELETE FROM products WHERE id = ?");
             if (!$stmt) {
                 throw new Exception($conn->error);
             }
-            $stmt->bind_param("i", $_GET['id']);
+            $stmt->bind_param("i", $deleteId);
             if ($stmt->execute()) {
+                // Sync deletion to SMS
+                sync_single_product_to_sms(['id' => $deleteId, 'pos_product_id' => $deleteId], 'delete');
                 echo json_encode(["message" => "Product deleted successfully."]);
             } else {
                 http_response_code(500);
@@ -198,7 +313,7 @@ try {
 
         default:
             http_response_code(405);
-            echo json_encode(["message" => "Method not allowed."]);
+            echo json_encode(["error" => "Method not allowed"]);
             break;
     }
 } catch (Throwable $e) {

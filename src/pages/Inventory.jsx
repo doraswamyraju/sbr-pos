@@ -6,6 +6,7 @@ import InventoryDashboard from '../components/InventoryDashboard';
 import PurchaseManagement from '../components/PurchaseManagement';
 import Modal from '../components/common/Modal';
 import ProductForm from '../components/ProductForm';
+import BOMManagement from '../components/BOMManagement';
 
 const Inventory = ({ currentUser }) => {
     const [products, setProducts] = useState([]);
@@ -14,6 +15,7 @@ const Inventory = ({ currentUser }) => {
     const [error, setError] = useState(null);
     const [showPurchaseModal, setShowPurchaseModal] = useState(false);
     const [showNewProductModal, setShowNewProductModal] = useState(false);
+    const [showBOMModal, setShowBOMModal] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -40,6 +42,7 @@ const Inventory = ({ currentUser }) => {
         <div className="w-full pb-20 md:pb-6">
             <InventoryDashboard
                 onRecordPurchase={() => setShowPurchaseModal(true)}
+                onOpenBOM={() => setShowBOMModal(true)}
                 products={products}
                 suppliers={suppliers}
                 onDataChange={fetchData}
@@ -66,6 +69,16 @@ const Inventory = ({ currentUser }) => {
                             fetchData();
                         }}
                         initialData={null}
+                    />
+                </Modal>
+            )}
+
+            {showBOMModal && (
+                <Modal onClose={() => setShowBOMModal(false)}>
+                    <BOMManagement
+                        allProducts={products}
+                        onDataChange={fetchData}
+                        onClose={() => setShowBOMModal(false)}
                     />
                 </Modal>
             )}

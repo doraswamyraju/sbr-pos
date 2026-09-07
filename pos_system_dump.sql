@@ -1,4 +1,4 @@
-﻿-- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
+-- MariaDB dump 10.19  Distrib 10.4.32-MariaDB, for Win64 (AMD64)
 --
 -- Host: localhost    Database: pos_system
 -- ------------------------------------------------------
@@ -130,6 +130,7 @@ CREATE TABLE `products` (
   `price` decimal(10,2) NOT NULL,
   `purchase_price` decimal(10,2) DEFAULT 0.00,
   `stock_level` int(11) NOT NULL,
+  `min_stock_level` int(11) NOT NULL DEFAULT 0,
   `sku` varchar(255) DEFAULT NULL,
   `category` varchar(255) DEFAULT NULL,
   `supplier_id` int(11) DEFAULT NULL,
@@ -394,6 +395,49 @@ LOCK TABLES `users` WRITE;
 INSERT INTO `users` VALUES (1,'admin','$2y$10$NyBmoll5wjTjonWYrqzb9uTuZEn/8ADS0eUvQdCeE.nkG2Wf7aFwS','admin','Admin User',1,NULL),(2,'sales','$2a$12$mlSdDqaMCLt.Go4LfJhtl.OsYIwyink6NXLq/plF1yAjwkDQXOPbS','store_incharge','Store In-Charge',1,NULL);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
+--
+-- Table structure for table `product_bom`
+--
+
+DROP TABLE IF EXISTS `product_bom`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `product_bom` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `finished_product_id` int(11) NOT NULL,
+  `component_product_id` int(11) NOT NULL,
+  `quantity` decimal(10,2) NOT NULL DEFAULT 1.00,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_combo` (`finished_product_id`,`component_product_id`),
+  KEY `component_product_id` (`component_product_id`),
+  CONSTRAINT `product_bom_ibfk_1` FOREIGN KEY (`finished_product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `product_bom_ibfk_2` FOREIGN KEY (`component_product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `assembly_logs`
+--
+
+DROP TABLE IF EXISTS `assembly_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `assembly_logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `finished_product_id` int(11) NOT NULL,
+  `quantity_assembled` int(11) NOT NULL,
+  `assembled_by_user_id` int(11) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `finished_product_id` (`finished_product_id`),
+  KEY `assembled_by_user_id` (`assembled_by_user_id`),
+  CONSTRAINT `assembly_logs_ibfk_1` FOREIGN KEY (`finished_product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `assembly_logs_ibfk_2` FOREIGN KEY (`assembled_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

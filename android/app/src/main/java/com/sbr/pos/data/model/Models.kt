@@ -21,11 +21,14 @@ data class Product(
     val sku: String? = null,
     val price: Double = 0.0,
     @SerializedName("stock_level") val stockLevel: Int = 0,
+    @SerializedName("min_stock_level") val minStockLevel: Int = 0,
     val category: String? = "General",
     @SerializedName("supplier_id") val supplierId: String? = null,
     val description: String? = null,
     val image: String? = null
-)
+) {
+    val isLowStock: Boolean get() = (minStockLevel > 0 && stockLevel <= minStockLevel) || (minStockLevel == 0 && stockLevel in 1..5)
+}
 
 data class CartItem(
     val product: Product,

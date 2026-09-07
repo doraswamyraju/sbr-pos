@@ -61,7 +61,7 @@ fun InventoryScreen(
             item {
                 val totalValue = products.sumOf { it.price * it.stockLevel }
                 val totalItems = products.sumOf { it.stockLevel }
-                val lowStockCount = products.count { it.stockLevel in 1..5 }
+                val lowStockCount = products.count { it.isLowStock }
                 val categoriesCount = products.mapNotNull { it.category }.distinct().size
 
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -319,7 +319,11 @@ fun ProductDashboardCard(
                     // Stock status pill
                     val (bgColor, textColor, labelText) = when {
                         product.stockLevel <= 0 -> Triple(Color(0xFFFEE2E2), Color(0xFFDC2626), "Out of Stock")
-                        product.stockLevel <= 5 -> Triple(Color(0xFFFEF3C7), Color(0xFFD97706), "Low: ${product.stockLevel}")
+                        product.isLowStock -> Triple(
+                            Color(0xFFFEF3C7),
+                            Color(0xFFD97706),
+                            if (product.minStockLevel > 0) "Low: ${product.stockLevel} (Min: ${product.minStockLevel})" else "Low: ${product.stockLevel}"
+                        )
                         else -> Triple(Color(0xFFD1FAE5), Color(0xFF059669), "Stock: ${product.stockLevel}")
                     }
 

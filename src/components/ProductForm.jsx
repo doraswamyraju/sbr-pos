@@ -10,7 +10,8 @@ const ProductForm = ({ onProductAdded, initialData }) => {
     name: initialData?.name || '',
     description: initialData?.description || '',
     price: initialData?.price || '',
-    stock_level: initialData?.stock_level || '',
+    stock_level: initialData?.stock_level ?? '',
+    min_stock_level: initialData?.min_stock_level ?? 0,
     sku: initialData?.sku || '',
     category: initialData?.category || '',
     supplier_id: initialData?.supplier_id || ''
@@ -23,7 +24,8 @@ const ProductForm = ({ onProductAdded, initialData }) => {
       name: initialData?.name || '',
       description: initialData?.description || '',
       price: initialData?.price || '',
-      stock_level: initialData?.stock_level || '',
+      stock_level: initialData?.stock_level ?? '',
+      min_stock_level: initialData?.min_stock_level ?? 0,
       sku: initialData?.sku || '',
       category: initialData?.category || '',
       supplier_id: initialData?.supplier_id || ''
@@ -83,7 +85,7 @@ const ProductForm = ({ onProductAdded, initialData }) => {
               />
             </div>
             <div className="flex flex-col">
-              <label htmlFor="price" className="text-gray-700 font-semibold mb-1">Price</label>
+              <label htmlFor="price" className="text-gray-700 font-semibold mb-1">Price (₹)</label>
               <input
                 type="number"
                 id="price"
@@ -96,7 +98,7 @@ const ProductForm = ({ onProductAdded, initialData }) => {
               />
             </div>
             <div className="flex flex-col">
-              <label htmlFor="stock_level" className="text-gray-700 font-semibold mb-1">Stock Level</label>
+              <label htmlFor="stock_level" className="text-gray-700 font-semibold mb-1">Current Stock Level</label>
               <input
                 type="number"
                 id="stock_level"
@@ -105,6 +107,21 @@ const ProductForm = ({ onProductAdded, initialData }) => {
                 onChange={handleChange}
                 className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
+              />
+            </div>
+            <div className="flex flex-col">
+              <label htmlFor="min_stock_level" className="text-gray-700 font-semibold mb-1">
+                Minimum Stock Level (Low Stock Alert)
+              </label>
+              <input
+                type="number"
+                id="min_stock_level"
+                name="min_stock_level"
+                value={formData.min_stock_level}
+                onChange={handleChange}
+                min="0"
+                className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                placeholder="Alert when stock falls to/below"
               />
             </div>
             <div className="flex flex-col">

@@ -6,6 +6,7 @@ mysqli_report(MYSQLI_REPORT_OFF);
 
 $servername = "localhost";
 $dbname = "pos_system";
+/** @var mysqli|null $conn */
 $conn = null;
 
 // 1. If an untracked local config exists, use it first
