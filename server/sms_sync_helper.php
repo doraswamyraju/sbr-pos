@@ -47,7 +47,6 @@ function sms_http_post($url, $payloadArray, $timeout = 15) {
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErr = curl_error($ch);
-        if (PHP_VERSION_ID < 80500) { @curl_close($ch); }
         unset($ch);
 
         if ($curlErr) {
@@ -169,7 +168,6 @@ function fetch_agent_inventory_from_sms() {
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErr = curl_error($ch);
-        if (PHP_VERSION_ID < 80500) { @curl_close($ch); }
         unset($ch);
         
         if ($curlErr) {
