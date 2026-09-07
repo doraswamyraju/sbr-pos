@@ -38,7 +38,8 @@ try {
             $response = curl_exec($ch);
             $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $curlErr = curl_error($ch);
-            curl_close($ch);
+            if (PHP_VERSION_ID < 80500) { @curl_close($ch); }
+            unset($ch);
 
             echo json_encode([
                 "status" => "ok",
