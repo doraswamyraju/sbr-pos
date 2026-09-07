@@ -21,55 +21,98 @@ if (!defined('SMS_API_BASE_URL')) {
 }
 
 /**
+ * Universal HTTP POST Request Helper (Supports cURL & stream context fallback)
+ */
+function sms_http_post($url, $payloadArray, $timeout = 15) {
+    $jsonData = json_encode($payloadArray);
+    $headers = [
+        "Content-Type: application/json",
+        "x-pos-sync-token: " . SMS_SYNC_TOKEN,
+        "Content-Length: " . strlen($jsonData)
+    ];
+
+    // Method 1: cURL (Preferred when ext-curl is enabled)
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlErr) {
+            return ['success' => false, 'error' => $curlErr, 'http_code' => $httpCode];
+        }
+
+        $decoded = json_decode($response, true);
+        return [
+            'success' => ($httpCode >= 200 && $httpCode < 300),
+            'http_code' => $httpCode,
+            'response' => $decoded ?: $response
+        ];
+    } else {
+        // Method 2: Stream Context fallback (Works natively in all PHP installations without ext-curl)
+        $opts = [
+            'http' => [
+                'method'  => 'POST',
+                'header'  => implode("\r\n", $headers),
+                'content' => $jsonData,
+                'timeout' => $timeout,
+                'ignore_errors' => true
+            ],
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false
+            ]
+        ];
+        $context  = stream_context_create($opts);
+        $response = @file_get_contents($url, false, $context);
+        
+        $httpCode = 200;
+        if (isset($http_response_header) && is_array($http_response_header)) {
+            if (preg_match('#HTTP/\S+\s+(\d+)#', $http_response_header[0], $matches)) {
+                $httpCode = intval($matches[1]);
+            }
+        }
+
+        if ($response === false) {
+            $lastErr = error_get_last();
+            return [
+                'success' => false,
+                'error' => $lastErr['message'] ?? 'Failed to connect to SMS API via stream context.',
+                'http_code' => $httpCode
+            ];
+        }
+
+        $decoded = json_decode($response, true);
+        return [
+            'success' => ($httpCode >= 200 && $httpCode < 300),
+            'http_code' => $httpCode,
+            'response' => $decoded ?: $response
+        ];
+    }
+}
+
+/**
  * Synchronize a single product (or deletion) to SBR SMS Backend
- *
- * @param array $productData Associative array of product fields
- * @param string $action 'upsert' or 'delete'
- * @return array Result containing success status and response
  */
 function sync_single_product_to_sms($productData, $action = 'upsert') {
     $url = rtrim(SMS_API_BASE_URL, '/') . '/products/sync-from-pos';
-    
     $payload = array_merge($productData, ['action' => $action]);
-    $jsonData = json_encode($payload);
-
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json',
-        'x-pos-sync-token: ' . SMS_SYNC_TOKEN,
-        'Content-Length: ' . strlen($jsonData)
-    ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Fast timeout to avoid blocking POS UI
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlErr = curl_error($ch);
-    curl_close($ch);
-
-    if ($curlErr) {
-        return ['success' => false, 'error' => $curlErr, 'http_code' => $httpCode];
-    }
-
-    $decoded = json_decode($response, true);
-    return [
-        'success' => ($httpCode >= 200 && $httpCode < 300),
-        'http_code' => $httpCode,
-        'response' => $decoded ?: $response
-    ];
+    return sms_http_post($url, $payload, 5);
 }
 
 /**
  * Bulk synchronize all active products from POS to SBR SMS Backend
- *
- * @param mysqli $conn Active MySQLi database connection
- * @return array Result summary of bulk sync
  */
 function sync_all_products_to_sms($conn) {
     $sql = "SELECT id, name, price, stock_level, min_stock_level, description, sku, category, supplier_id FROM products";
@@ -98,38 +141,8 @@ function sync_all_products_to_sms($conn) {
     }
 
     $url = rtrim(SMS_API_BASE_URL, '/') . '/products/sync-bulk-from-pos';
-    $payload = json_encode(['products' => $products]);
-
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Content-Type: application/json',
-        'x-pos-sync-token: ' . SMS_SYNC_TOKEN,
-        'Content-Length: ' . strlen($payload)
-    ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 25);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $curlErr = curl_error($ch);
-    curl_close($ch);
-
-    if ($curlErr) {
-        return ['success' => false, 'error' => $curlErr, 'http_code' => $httpCode];
-    }
-
-    $decoded = json_decode($response, true);
-    return [
-        'success' => ($httpCode >= 200 && $httpCode < 300),
-        'http_code' => $httpCode,
-        'response' => $decoded ?: $response,
-        'total_sent' => count($products)
-    ];
+    $result = sms_http_post($url, ['products' => $products], 25);
+    $result['total_sent'] = count($products);
+    return $result;
 }
 ?>

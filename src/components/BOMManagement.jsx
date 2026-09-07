@@ -16,7 +16,7 @@ import {
 } from 'react-icons/fa';
 
 const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
-  const [activeTab, setActiveTab] = useState('assemble'); // 'assemble' | 'recipes' | 'logs'
+  const [activeTab, setActiveTab] = useState('assemble'); // 'assemble' | 'lists' | 'logs'
   const [boms, setBoms] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -33,19 +33,25 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
   const [assembleNotes, setAssembleNotes] = useState('');
   const [assembling, setAssembling] = useState(false);
 
-  // Recipe Builder Modal state
-  const [recipeProduct, setRecipeProduct] = useState(null);
-  const [recipeComponents, setRecipeComponents] = useState([]); // [{ component_product_id, quantity }]
-  const [savingRecipe, setSavingRecipe] = useState(false);
+  // Packing List Builder Modal state
+  const [showBuilderModal, setShowBuilderModal] = useState(false);
+  const [builderProductSource, setBuilderProductSource] = useState('existing'); // 'existing' | 'new'
+  const [selectedFinishedProductId, setSelectedFinishedProductId] = useState('');
+  const [newProductName, setNewProductName] = useState('');
+  const [newProductSku, setNewProductSku] = useState('');
+  const [newProductCategory, setNewProductCategory] = useState('Finished Goods');
+  const [newProductPrice, setNewProductPrice] = useState('');
+  const [packingComponents, setPackingComponents] = useState([]); // [{ component_product_id, quantity }]
+  const [savingPackingList, setSavingPackingList] = useState(false);
 
   useEffect(() => {
-    fetchBOMs();
+    fetchPackingLists();
     if (activeTab === 'logs') {
       fetchLogs();
     }
   }, [activeTab]);
 
-  const fetchBOMs = async () => {
+  const fetchPackingLists = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -54,7 +60,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch Packing List configurations.');
+      setError('Failed to fetch Packing Lists.');
       setLoading(false);
     }
   };
@@ -104,7 +110,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
       setSuccessMsg(`Successfully assembled ${assembleQty} unit(s) of ${selectedProductForAssemble.name}!`);
       setTimeout(() => setSuccessMsg(''), 5000);
       setSelectedProductForAssemble(null);
-      fetchBOMs();
+      fetchPackingLists();
       if (onDataChange) onDataChange();
     } catch (err) {
       console.error(err);
@@ -120,13 +126,21 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
     }
   };
 
-  const openRecipeBuilder = async (product) => {
-    setRecipeProduct(product);
-    setRecipeComponents([]);
+  // Open builder for an existing product
+  const openEditPackingList = async (product) => {
+    setBuilderProductSource('existing');
+    setSelectedFinishedProductId(product.id);
+    setNewProductName('');
+    setNewProductSku('');
+    setNewProductCategory('Finished Goods');
+    setNewProductPrice('');
+    setPackingComponents([]);
+    setShowBuilderModal(true);
+
     try {
       const res = await axios.get(`${API_BASE_URL}/server/api/assembly.php?action=get_bom&product_id=${product.id}`);
       if (res.data?.components) {
-        setRecipeComponents(res.data.components.map(c => ({
+        setPackingComponents(res.data.components.map(c => ({
           component_product_id: c.component_product_id,
           quantity: c.required_qty
         })));
@@ -136,57 +150,92 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
     }
   };
 
-  const addComponentToRecipe = () => {
-    const available = allProducts.find(p => p.id !== recipeProduct?.id && !recipeComponents.some(rc => rc.component_product_id === p.id));
-    if (!available) {
-      alert('No more unique products available to add as component.');
-      return;
-    }
-    setRecipeComponents(prev => [...prev, { component_product_id: available.id, quantity: 1 }]);
+  // Open builder for creating a brand new product packing list
+  const openNewProductPackingList = () => {
+    setBuilderProductSource('new');
+    setSelectedFinishedProductId('');
+    setNewProductName('');
+    setNewProductSku('');
+    setNewProductCategory('Finished Goods');
+    setNewProductPrice('');
+    setPackingComponents([]);
+    setShowBuilderModal(true);
   };
 
-  const updateRecipeComponent = (index, field, value) => {
-    setRecipeComponents(prev => {
+  const addComponentRow = () => {
+    const currentFinishedId = builderProductSource === 'existing' ? parseInt(selectedFinishedProductId) : null;
+    const available = allProducts.find(p => p.id !== currentFinishedId && !packingComponents.some(rc => rc.component_product_id === p.id));
+    if (!available) {
+      alert('No more unique products available in inventory to add.');
+      return;
+    }
+    setPackingComponents(prev => [...prev, { component_product_id: available.id, quantity: 1 }]);
+  };
+
+  const updateComponentRow = (index, field, value) => {
+    setPackingComponents(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
       return updated;
     });
   };
 
-  const removeRecipeComponent = (index) => {
-    setRecipeComponents(prev => prev.filter((_, i) => i !== index));
+  const removeComponentRow = (index) => {
+    setPackingComponents(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSaveRecipe = async (e) => {
+  const handleSavePackingList = async (e) => {
     e.preventDefault();
-    if (!recipeProduct) return;
 
-    if (recipeComponents.length === 0) {
-      if (!window.confirm('No components added. This will clear the Packing List recipe for this product. Continue?')) {
+    if (builderProductSource === 'new') {
+      if (!newProductName.trim()) {
+        alert('Please enter a name for the new finished product.');
+        return;
+      }
+    } else {
+      if (!selectedFinishedProductId) {
+        alert('Please select a product from inventory.');
         return;
       }
     }
 
-    setSavingRecipe(true);
-    try {
-      await axios.post(`${API_BASE_URL}/server/api/assembly.php?action=save_bom`, {
-        finished_product_id: recipeProduct.id,
-        components: recipeComponents
-      });
+    if (packingComponents.length === 0) {
+      if (!window.confirm('No components added. This will clear the packing list. Continue?')) {
+        return;
+      }
+    }
 
-      setSuccessMsg(`Packing List recipe saved for ${recipeProduct.name}!`);
+    setSavingPackingList(true);
+    try {
+      const payload = {
+        finished_product_id: builderProductSource === 'existing' ? parseInt(selectedFinishedProductId) : 0,
+        new_product_name: builderProductSource === 'new' ? newProductName.trim() : '',
+        new_product_sku: builderProductSource === 'new' ? newProductSku.trim() : '',
+        new_product_category: builderProductSource === 'new' ? newProductCategory.trim() : '',
+        new_product_price: builderProductSource === 'new' ? parseFloat(newProductPrice) || 0 : 0,
+        components: packingComponents
+      };
+
+      await axios.post(`${API_BASE_URL}/server/api/assembly.php?action=save_bom`, payload);
+
+      const targetName = builderProductSource === 'new'
+        ? newProductName
+        : (allProducts.find(p => p.id === parseInt(selectedFinishedProductId))?.name || 'Product');
+
+      setSuccessMsg(`Packing List saved successfully for ${targetName}!`);
       setTimeout(() => setSuccessMsg(''), 5000);
-      setRecipeProduct(null);
-      fetchBOMs();
+      setShowBuilderModal(false);
+      fetchPackingLists();
+      if (onDataChange) onDataChange();
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.error || 'Failed to save recipe.');
+      alert(err.response?.data?.error || 'Failed to save packing list.');
     } finally {
-      setSavingRecipe(false);
+      setSavingPackingList(false);
     }
   };
 
-  // Filter products for recipes
+  // Filter products for lists tab
   const filteredProducts = allProducts.filter(p =>
     !searchTerm ||
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -194,7 +243,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
     (p.category && p.category.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Filter boms for assemble
+  // Filter boms for assemble tab
   const filteredBoms = boms.filter(b =>
     !searchTerm ||
     b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -211,7 +260,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-gray-800">Packing List & Assembly</h2>
-            <p className="text-sm text-gray-500">Configure component packing lists & assemble finished products with live inventory tracking</p>
+            <p className="text-sm text-gray-500">Create component packing lists & assemble finished products with live inventory tracking</p>
           </div>
         </div>
         {onClose && (
@@ -226,7 +275,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
 
       {/* Success Notification */}
       {successMsg && (
-        <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg flex items-center space-x-2">
+        <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg flex items-center space-x-2 animate-fade-in">
           <FaCheckCircle className="text-emerald-600 flex-shrink-0" />
           <span className="font-medium">{successMsg}</span>
         </div>
@@ -234,7 +283,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
 
       {/* Error Notification */}
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center space-x-2">
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center space-x-2 animate-fade-in">
           <FaExclamationTriangle className="text-red-600 flex-shrink-0" />
           <span className="font-medium">{error}</span>
         </div>
@@ -254,14 +303,14 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
             <FaBoxes className="mr-2" /> Assemble Stock ({boms.length})
           </button>
           <button
-            onClick={() => setActiveTab('recipes')}
+            onClick={() => setActiveTab('lists')}
             className={`flex items-center px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
-              activeTab === 'recipes'
+              activeTab === 'lists'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
-            <FaCogs className="mr-2" /> Packing List Recipes
+            <FaCogs className="mr-2" /> Packing Lists ({allProducts.length})
           </button>
           <button
             onClick={() => setActiveTab('logs')}
@@ -275,18 +324,27 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
           </button>
         </div>
 
-        {activeTab !== 'logs' && (
-          <div className="relative w-full sm:w-64">
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            />
-            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
-          </div>
-        )}
+        <div className="flex items-center space-x-2">
+          {activeTab !== 'logs' && (
+            <div className="relative w-full sm:w-60">
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+              <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+            </div>
+          )}
+
+          <button
+            onClick={openNewProductPackingList}
+            className="flex items-center whitespace-nowrap px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg text-sm font-semibold hover:from-purple-700 hover:to-indigo-700 shadow-md transition-all"
+          >
+            <FaPlus className="mr-1.5 text-xs" /> + New Packing List
+          </button>
+        </div>
       </div>
 
       {/* TAB 1: ASSEMBLE FINISHED PRODUCTS */}
@@ -304,15 +362,15 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
           ) : filteredBoms.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
               <FaBoxes className="mx-auto text-4xl text-gray-300 mb-3" />
-              <h3 className="text-lg font-semibold text-gray-700">No Packing Lists found</h3>
+              <h3 className="text-lg font-semibold text-gray-700">No Packing Lists configured yet</h3>
               <p className="text-sm text-gray-500 max-w-md mx-auto mt-1 mb-4">
-                Define the component recipe for your RO Systems or Solar Heaters to start assembling stock.
+                Define the component packing list for your finished products or RO combos to start assembling stock.
               </p>
               <button
-                onClick={() => setActiveTab('recipes')}
+                onClick={openNewProductPackingList}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
               >
-                Create Packing List Recipe
+                + Create First Packing List
               </button>
             </div>
           ) : (
@@ -370,8 +428,8 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
         </div>
       )}
 
-      {/* TAB 2: PACKING LIST RECIPES */}
-      {activeTab === 'recipes' && (
+      {/* TAB 2: PACKING LISTS */}
+      {activeTab === 'lists' && (
         <div className="mt-6 space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-bold text-gray-800">All Finished Products & Combos</h3>
@@ -421,14 +479,14 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
                         </td>
                         <td className="px-5 py-3.5 text-sm text-right">
                           <button
-                            onClick={() => openRecipeBuilder(p)}
+                            onClick={() => openEditPackingList(p)}
                             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${
                               hasBom
                                 ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
                                 : 'bg-indigo-600 text-white hover:bg-indigo-700'
                             }`}
                           >
-                            {hasBom ? 'Edit Recipe' : '+ Build Recipe'}
+                            {hasBom ? 'Edit Packing List' : '+ Create Packing List'}
                           </button>
                         </td>
                       </tr>
@@ -541,7 +599,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Production Notes (Optional)</label>
                   <input
                     type="text"
-                    placeholder="e.g. Batch #101, assembled for agent dispatch"
+                    placeholder="e.g. Batch #101, assembled for customer order"
                     value={assembleNotes}
                     onChange={(e) => setAssembleNotes(e.target.value)}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-emerald-500"
@@ -572,86 +630,190 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
         </div>
       )}
 
-      {/* RECIPE BUILDER MODAL */}
-      {recipeProduct && (
+      {/* PACKING LIST BUILDER MODAL (Supports both New and Existing finished products) */}
+      {showBuilderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-3 border-b">
               <div>
-                <h3 className="text-xl font-bold text-gray-800">Packing List Recipe: {recipeProduct.name}</h3>
-                <span className="text-xs text-gray-500">Define which components & quantities are required to assemble 1 unit</span>
+                <h3 className="text-xl font-bold text-gray-800">Configure Packing List</h3>
+                <span className="text-xs text-gray-500">Define raw materials and spare parts required for the finished product</span>
               </div>
-              <button onClick={() => setRecipeProduct(null)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowBuilderModal(false)} className="text-gray-400 hover:text-gray-600">
                 <FaTimes />
               </button>
             </div>
 
-            <form onSubmit={handleSaveRecipe} className="mt-4 space-y-4">
-              <div className="space-y-3">
-                {recipeComponents.map((comp, idx) => (
-                  <div key={idx} className="flex items-center space-x-2 bg-gray-50 p-3 rounded-xl border">
-                    <div className="flex-1">
-                      <label className="text-xs text-gray-500 block mb-1">Component Product</label>
-                      <select
-                        value={comp.component_product_id}
-                        onChange={(e) => updateRecipeComponent(idx, 'component_product_id', parseInt(e.target.value))}
-                        className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
-                        required
-                      >
-                        {allProducts.filter(p => p.id !== recipeProduct.id).map(p => (
-                          <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock_level ?? 0})</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="w-28">
-                      <label className="text-xs text-gray-500 block mb-1">Qty Required</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        value={comp.quantity}
-                        onChange={(e) => updateRecipeComponent(idx, 'quantity', parseFloat(e.target.value) || 1)}
-                        className="w-full px-3 py-2 border rounded-lg bg-white text-sm font-semibold"
-                        required
-                      />
-                    </div>
-                    <div className="pt-5">
-                      <button
-                        type="button"
-                        onClick={() => removeRecipeComponent(idx)}
-                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
-                        title="Remove Component"
-                      >
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+            <form onSubmit={handleSavePackingList} className="mt-4 space-y-4">
+              {/* Product Selection Mode Picker */}
+              <div className="flex rounded-lg bg-gray-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => setBuilderProductSource('existing')}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    builderProductSource === 'existing'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Select from Existing Inventory
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBuilderProductSource('new')}
+                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                    builderProductSource === 'new'
+                      ? 'bg-white text-indigo-700 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  + Create New Finished Product
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={addComponentToRecipe}
-                className="w-full py-2.5 border-2 border-dashed border-indigo-300 text-indigo-700 hover:bg-indigo-50 rounded-xl text-sm font-semibold flex items-center justify-center space-x-1.5 transition-colors"
-              >
-                <FaPlus className="text-xs" />
-                <span>Add Component Part to Packing List</span>
-              </button>
+              {/* Section 1: Finished Product Details */}
+              {builderProductSource === 'existing' ? (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Finished Product</label>
+                  <select
+                    value={selectedFinishedProductId}
+                    onChange={(e) => setSelectedFinishedProductId(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                    required
+                  >
+                    <option value="">-- Choose a Product from Inventory --</option>
+                    {allProducts.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} {p.sku ? `(SKU: ${p.sku})` : ''} - Current Stock: {p.stock_level ?? 0}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">New Finished Product Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 100 LPD Solar Water Heater System / Complete RO Unit"
+                      value={newProductName}
+                      onChange={(e) => setNewProductName(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-sm focus:ring-2 focus:ring-indigo-500"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">SKU (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. SWH-100L"
+                      value={newProductSku}
+                      onChange={(e) => setNewProductSku(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Category</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Solar Heaters / RO Systems"
+                      value={newProductCategory}
+                      onChange={(e) => setNewProductCategory(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Selling Price (₹)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={newProductPrice}
+                      onChange={(e) => setNewProductPrice(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                    />
+                  </div>
+                </div>
+              )}
 
+              {/* Section 2: Component Parts List */}
+              <div className="pt-2">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                    Component Parts in Packing List ({packingComponents.length})
+                  </label>
+                  <span className="text-xs text-gray-500">Pick raw parts and required quantity per 1 unit</span>
+                </div>
+
+                <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                  {packingComponents.map((comp, idx) => (
+                    <div key={idx} className="flex items-center space-x-2 bg-gray-50 p-3 rounded-xl border">
+                      <div className="flex-1">
+                        <label className="text-xs text-gray-500 block mb-1">Component Part</label>
+                        <select
+                          value={comp.component_product_id}
+                          onChange={(e) => updateComponentRow(idx, 'component_product_id', parseInt(e.target.value))}
+                          className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                          required
+                        >
+                          {allProducts
+                            .filter(p => builderProductSource === 'new' || p.id !== parseInt(selectedFinishedProductId))
+                            .map(p => (
+                              <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock_level ?? 0})</option>
+                            ))}
+                        </select>
+                      </div>
+                      <div className="w-28">
+                        <label className="text-xs text-gray-500 block mb-1">Qty Required</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={comp.quantity}
+                          onChange={(e) => updateComponentRow(idx, 'quantity', parseFloat(e.target.value) || 1)}
+                          className="w-full px-3 py-2 border rounded-lg bg-white text-sm font-semibold"
+                          required
+                        />
+                      </div>
+                      <div className="pt-5">
+                        <button
+                          type="button"
+                          onClick={() => removeComponentRow(idx)}
+                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                          title="Remove Component"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addComponentRow}
+                  className="w-full mt-3 py-2.5 border-2 border-dashed border-indigo-300 text-indigo-700 hover:bg-indigo-50 rounded-xl text-sm font-semibold flex items-center justify-center space-x-1.5 transition-colors"
+                >
+                  <FaPlus className="text-xs" />
+                  <span>Add Component Part to Packing List</span>
+                </button>
+              </div>
+
+              {/* Action Buttons */}
               <div className="flex justify-end space-x-3 pt-4 border-t">
                 <button
                   type="button"
-                  onClick={() => setRecipeProduct(null)}
+                  onClick={() => setShowBuilderModal(false)}
                   className="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-100 text-sm font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={savingRecipe}
-                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 text-sm"
+                  disabled={savingPackingList}
+                  className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 text-sm shadow-md"
                 >
-                  {savingRecipe ? 'Saving...' : 'Save Packing List Recipe'}
+                  {savingPackingList ? 'Saving...' : 'Save Packing List'}
                 </button>
               </div>
             </form>

@@ -165,19 +165,34 @@ try {
                 exit;
             }
 
-            // Action 1: Save / Update BOM recipe for a finished product
+            // Action 1: Save / Update Packing List for a finished product
             if ($action === 'save_bom') {
                 $finishedProductId = intval($data['finished_product_id'] ?? 0);
+                $newProductName = trim($data['new_product_name'] ?? '');
                 $components = $data['components'] ?? [];
 
-                if ($finishedProductId <= 0) {
+                if ($finishedProductId <= 0 && empty($newProductName)) {
                     http_response_code(400);
-                    echo json_encode(["error" => "Invalid finished product ID."]);
+                    echo json_encode(["error" => "Please select an existing product or enter a new product name."]);
                     exit;
                 }
 
                 $conn->begin_transaction();
                 try {
+                    // Create new product on the fly if needed
+                    if ($finishedProductId <= 0 && !empty($newProductName)) {
+                        $newSku = trim($data['new_product_sku'] ?? '');
+                        $newPrice = floatval($data['new_product_price'] ?? 0);
+                        $newCategory = trim($data['new_product_category'] ?? 'Finished Goods');
+                        $newDesc = trim($data['new_product_description'] ?? 'Finished Product Assembly');
+
+                        $insProd = $conn->prepare("INSERT INTO products (name, sku, price, stock_level, min_stock_level, category, description) VALUES (?, ?, ?, 0, 0, ?, ?)");
+                        $insProd->bind_param("ssdss", $newProductName, $newSku, $newPrice, $newCategory, $newDesc);
+                        $insProd->execute();
+                        $finishedProductId = $insProd->insert_id;
+                        $insProd->close();
+                    }
+
                     // Delete existing BOM components
                     $delStmt = $conn->prepare("DELETE FROM product_bom WHERE finished_product_id = ?");
                     $delStmt->bind_param("i", $finishedProductId);
@@ -199,11 +214,15 @@ try {
                     }
 
                     $conn->commit();
-                    echo json_encode(["status" => "success", "message" => "BOM recipe updated successfully."]);
+                    echo json_encode([
+                        "status" => "success",
+                        "message" => "Packing list saved successfully.",
+                        "product_id" => $finishedProductId
+                    ]);
                 } catch (Throwable $e) {
                     $conn->rollback();
                     http_response_code(500);
-                    echo json_encode(["error" => "Failed to save BOM: " . $e->getMessage()]);
+                    echo json_encode(["error" => "Failed to save packing list: " . $e->getMessage()]);
                 }
                 exit;
             }
