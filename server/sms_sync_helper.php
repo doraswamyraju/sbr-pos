@@ -11,10 +11,10 @@ if (!defined('SMS_API_BASE_URL')) {
     if (file_exists(__DIR__ . '/sms_config.php')) {
         include_once __DIR__ . '/sms_config.php';
     } else {
-        // Fallback default SMS backend endpoint
-        $defaultUrl = 'http://localhost:5000/api';
-        if (isset($_SERVER['HTTP_HOST']) && (strpos($_SERVER['HTTP_HOST'], 'sriddha.com') !== false || strpos($_SERVER['HTTP_HOST'], 'rajugariventures.com') !== false)) {
-            $defaultUrl = 'https://api.sriddha.com/api';
+        // Fallback default SMS backend endpoint on live server
+        $defaultUrl = 'https://sbr.sriddha.com/api';
+        if (isset($_SERVER['HTTP_HOST']) && (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || strpos($_SERVER['HTTP_HOST'], '127.0.0.1') !== false)) {
+            $defaultUrl = 'http://localhost:5006/api';
         }
         define('SMS_API_BASE_URL', $defaultUrl);
     }
@@ -42,9 +42,11 @@ function sync_single_product_to_sms($productData, $action = 'upsert') {
         'x-pos-sync-token: ' . SMS_SYNC_TOKEN,
         'Content-Length: ' . strlen($jsonData)
     ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 3); // Fast timeout to avoid blocking POS UI
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Fast timeout to avoid blocking POS UI
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -107,9 +109,11 @@ function sync_all_products_to_sms($conn) {
         'x-pos-sync-token: ' . SMS_SYNC_TOKEN,
         'Content-Length: ' . strlen($payload)
     ]);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 25);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 
     $response = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

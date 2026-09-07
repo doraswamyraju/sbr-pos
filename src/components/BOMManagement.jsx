@@ -11,7 +11,8 @@ import {
   FaCheckCircle,
   FaExclamationTriangle,
   FaHammer,
-  FaTimes
+  FaTimes,
+  FaSearch
 } from 'react-icons/fa';
 
 const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
@@ -21,6 +22,9 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Search filter
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Assemble Modal state
   const [selectedProductForAssemble, setSelectedProductForAssemble] = useState(null);
@@ -50,7 +54,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
       setLoading(false);
     } catch (err) {
       console.error(err);
-      setError('Failed to fetch BOM configurations.');
+      setError('Failed to fetch Packing List configurations.');
       setLoading(false);
     }
   };
@@ -74,7 +78,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
       setAssembleBomDetails(res.data);
     } catch (err) {
       console.error(err);
-      alert('Failed to load BOM components for this product.');
+      alert('Failed to load Packing List components for this product.');
     }
   };
 
@@ -133,7 +137,6 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
   };
 
   const addComponentToRecipe = () => {
-    // Pick first available product that isn't the finished product itself
     const available = allProducts.find(p => p.id !== recipeProduct?.id && !recipeComponents.some(rc => rc.component_product_id === p.id));
     if (!available) {
       alert('No more unique products available to add as component.');
@@ -183,17 +186,32 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
     }
   };
 
+  // Filter products for recipes
+  const filteredProducts = allProducts.filter(p =>
+    !searchTerm ||
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.category && p.category.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Filter boms for assemble
+  const filteredBoms = boms.filter(b =>
+    !searchTerm ||
+    b.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (b.sku && b.sku.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
   return (
-    <div className="bg-white rounded-xl shadow-xl p-4 md:p-6 w-full max-w-5xl mx-auto">
+    <div className="bg-white rounded-xl p-2 sm:p-4 w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b gap-3">
         <div className="flex items-center space-x-3">
           <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl text-white shadow-md">
-            <FaHammer className="text-xl" />
+            <FaBoxes className="text-xl" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Packing List & BOM Assembly</h2>
-            <p className="text-sm text-gray-500">Combine raw materials & parts into finished goods with live inventory validation</p>
+            <h2 className="text-2xl font-bold text-gray-800">Packing List & Assembly</h2>
+            <p className="text-sm text-gray-500">Configure component packing lists & assemble finished products with live inventory tracking</p>
           </div>
         </div>
         {onClose && (
@@ -208,7 +226,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
 
       {/* Success Notification */}
       {successMsg && (
-        <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg flex items-center space-x-2 animate-fade-in">
+        <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-lg flex items-center space-x-2">
           <FaCheckCircle className="text-emerald-600 flex-shrink-0" />
           <span className="font-medium">{successMsg}</span>
         </div>
@@ -216,44 +234,59 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
 
       {/* Error Notification */}
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center space-x-2 animate-fade-in">
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg flex items-center space-x-2">
           <FaExclamationTriangle className="text-red-600 flex-shrink-0" />
           <span className="font-medium">{error}</span>
         </div>
       )}
 
-      {/* Tabs */}
-      <div className="flex space-x-2 mt-4 border-b border-gray-200 pb-2">
-        <button
-          onClick={() => setActiveTab('assemble')}
-          className={`flex items-center px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
-            activeTab === 'assemble'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <FaBoxes className="mr-2" /> Assemble Stock ({boms.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('recipes')}
-          className={`flex items-center px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
-            activeTab === 'recipes'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <FaCogs className="mr-2" /> Packing List Recipes
-        </button>
-        <button
-          onClick={() => setActiveTab('logs')}
-          className={`flex items-center px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
-            activeTab === 'logs'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-gray-600 hover:bg-gray-100'
-          }`}
-        >
-          <FaHistory className="mr-2" /> Assembly History
-        </button>
+      {/* Tabs & Search */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4 border-b border-gray-200 pb-3">
+        <div className="flex space-x-2">
+          <button
+            onClick={() => setActiveTab('assemble')}
+            className={`flex items-center px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
+              activeTab === 'assemble'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <FaBoxes className="mr-2" /> Assemble Stock ({boms.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('recipes')}
+            className={`flex items-center px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
+              activeTab === 'recipes'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <FaCogs className="mr-2" /> Packing List Recipes
+          </button>
+          <button
+            onClick={() => setActiveTab('logs')}
+            className={`flex items-center px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
+              activeTab === 'logs'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            <FaHistory className="mr-2" /> Packing List History
+          </button>
+        </div>
+
+        {activeTab !== 'logs' && (
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
+            <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+          </div>
+        )}
       </div>
 
       {/* TAB 1: ASSEMBLE FINISHED PRODUCTS */}
@@ -262,16 +295,16 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-sm flex items-start space-x-2">
             <FaExclamationTriangle className="text-amber-600 mt-0.5 flex-shrink-0" />
             <span>
-              When you assemble a finished product, the system verifies component stock, automatically deducts the raw components from POS stock, and increments the finished product stock.
+              When you assemble a finished product, component stock is verified, raw components are automatically deducted from POS inventory, and finished goods stock is incremented.
             </span>
           </div>
 
           {loading ? (
-            <div className="text-center py-10 text-gray-500">Loading BOM configurations...</div>
-          ) : boms.length === 0 ? (
+            <div className="text-center py-10 text-gray-500">Loading Packing Lists...</div>
+          ) : filteredBoms.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
               <FaBoxes className="mx-auto text-4xl text-gray-300 mb-3" />
-              <h3 className="text-lg font-semibold text-gray-700">No Packing Lists configured yet</h3>
+              <h3 className="text-lg font-semibold text-gray-700">No Packing Lists found</h3>
               <p className="text-sm text-gray-500 max-w-md mx-auto mt-1 mb-4">
                 Define the component recipe for your RO Systems or Solar Heaters to start assembling stock.
               </p>
@@ -279,12 +312,12 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
                 onClick={() => setActiveTab('recipes')}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
               >
-                Create First Packing List Recipe
+                Create Packing List Recipe
               </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {boms.map((item) => {
+              {filteredBoms.map((item) => {
                 const canProduce = item.max_producible_units > 0;
                 return (
                   <div
@@ -342,54 +375,66 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
         <div className="mt-6 space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-bold text-gray-800">All Finished Products & Combos</h3>
-            <span className="text-sm text-gray-500">Select any product to view or modify its Bill of Materials</span>
+            <span className="text-sm text-gray-500">Showing {filteredProducts.length} product(s)</span>
           </div>
 
-          <div className="overflow-x-auto border rounded-xl">
+          <div className="overflow-x-auto border rounded-xl shadow-sm">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Product</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Current Stock</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">BOM Status</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Action</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Product Name & SKU</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Current Stock</th>
+                  <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Packing List Status</th>
+                  <th className="px-5 py-3.5 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {allProducts.map((p) => {
-                  const bomInfo = boms.find(b => b.id === p.id);
-                  const hasBom = !!bomInfo;
-                  return (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {p.name}
-                        {p.sku && <span className="block text-xs text-gray-400">SKU: {p.sku}</span>}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{p.category || 'N/A'}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-800">{p.stock_level ?? 0}</td>
-                      <td className="px-4 py-3 text-sm">
-                        {hasBom ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">
-                            Configured ({bomInfo.component_count} parts)
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                            No Recipe
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right">
-                        <button
-                          onClick={() => openRecipeBuilder(p)}
-                          className="px-3 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-xs font-semibold"
-                        >
-                          {hasBom ? 'Edit Recipe' : '+ Build Recipe'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {filteredProducts.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-5 py-8 text-center text-gray-500">
+                      No products match your search.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredProducts.map((p) => {
+                    const bomInfo = boms.find(b => b.id === p.id);
+                    const hasBom = !!bomInfo;
+                    return (
+                      <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-5 py-3.5 text-sm font-medium text-gray-900">
+                          <div className="font-semibold text-gray-900">{p.name}</div>
+                          {p.sku && <span className="inline-block text-xs text-gray-500 font-normal">SKU: {p.sku}</span>}
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-gray-600">{p.category || 'General'}</td>
+                        <td className="px-5 py-3.5 text-sm font-bold text-gray-800">{p.stock_level ?? 0}</td>
+                        <td className="px-5 py-3.5 text-sm">
+                          {hasBom ? (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                              Configured ({bomInfo.component_count} parts)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                              No Packing List
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-right">
+                          <button
+                            onClick={() => openRecipeBuilder(p)}
+                            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm ${
+                              hasBom
+                                ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200'
+                                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                            }`}
+                          >
+                            {hasBom ? 'Edit Recipe' : '+ Build Recipe'}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -401,31 +446,31 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
         <div className="mt-6 space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-bold text-gray-800">Assembly Run History</h3>
-            <button onClick={fetchLogs} className="text-sm text-indigo-600 hover:underline">Refresh Logs</button>
+            <button onClick={fetchLogs} className="text-sm text-indigo-600 hover:underline font-semibold">Refresh Logs</button>
           </div>
 
           {logs.length === 0 ? (
             <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-xl">No assembly runs recorded yet.</div>
           ) : (
-            <div className="overflow-x-auto border rounded-xl">
+            <div className="overflow-x-auto border rounded-xl shadow-sm">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date & Time</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Finished Product</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Quantity Assembled</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Assembled By</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Notes</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date & Time</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Finished Product</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Quantity Assembled</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assembled By</th>
+                    <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Notes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
                   {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-500">{new Date(log.created_at).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-900">{log.finished_product_name || `Product #${log.finished_product_id}`}</td>
-                      <td className="px-4 py-3 text-sm font-bold text-emerald-600">+{log.quantity_assembled} units</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{log.assembled_by_name || 'System Admin'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-500">{log.notes || '-'}</td>
+                    <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-3.5 text-sm text-gray-500">{new Date(log.created_at).toLocaleString()}</td>
+                      <td className="px-5 py-3.5 text-sm font-semibold text-gray-900">{log.finished_product_name || `Product #${log.finished_product_id}`}</td>
+                      <td className="px-5 py-3.5 text-sm font-bold text-emerald-600">+{log.quantity_assembled} units</td>
+                      <td className="px-5 py-3.5 text-sm text-gray-600">{log.assembled_by_name || 'System Admin'}</td>
+                      <td className="px-5 py-3.5 text-sm text-gray-500">{log.notes || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -521,7 +566,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
                 </div>
               </form>
             ) : (
-              <div className="py-8 text-center text-gray-500">Loading BOM details...</div>
+              <div className="py-8 text-center text-gray-500">Loading Packing List details...</div>
             )}
           </div>
         </div>
@@ -534,7 +579,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
             <div className="flex justify-between items-center pb-3 border-b">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">Packing List Recipe: {recipeProduct.name}</h3>
-                <span className="text-xs text-gray-500">Define which components & quantities are required to make 1 unit</span>
+                <span className="text-xs text-gray-500">Define which components & quantities are required to assemble 1 unit</span>
               </div>
               <button onClick={() => setRecipeProduct(null)} className="text-gray-400 hover:text-gray-600">
                 <FaTimes />
@@ -544,43 +589,43 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
             <form onSubmit={handleSaveRecipe} className="mt-4 space-y-4">
               <div className="space-y-3">
                 {recipeComponents.map((comp, idx) => (
-                    <div key={idx} className="flex items-center space-x-2 bg-gray-50 p-3 rounded-xl border">
-                      <div className="flex-1">
-                        <label className="text-xs text-gray-500 block mb-1">Component Product</label>
-                        <select
-                          value={comp.component_product_id}
-                          onChange={(e) => updateRecipeComponent(idx, 'component_product_id', parseInt(e.target.value))}
-                          className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
-                          required
-                        >
-                          {allProducts.filter(p => p.id !== recipeProduct.id).map(p => (
-                            <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock_level ?? 0})</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="w-28">
-                        <label className="text-xs text-gray-500 block mb-1">Qty Required</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          value={comp.quantity}
-                          onChange={(e) => updateRecipeComponent(idx, 'quantity', parseFloat(e.target.value) || 1)}
-                          className="w-full px-3 py-2 border rounded-lg bg-white text-sm font-semibold"
-                          required
-                        />
-                      </div>
-                      <div className="pt-5">
-                        <button
-                          type="button"
-                          onClick={() => removeRecipeComponent(idx)}
-                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
-                          title="Remove Component"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
+                  <div key={idx} className="flex items-center space-x-2 bg-gray-50 p-3 rounded-xl border">
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-500 block mb-1">Component Product</label>
+                      <select
+                        value={comp.component_product_id}
+                        onChange={(e) => updateRecipeComponent(idx, 'component_product_id', parseInt(e.target.value))}
+                        className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                        required
+                      >
+                        {allProducts.filter(p => p.id !== recipeProduct.id).map(p => (
+                          <option key={p.id} value={p.id}>{p.name} (Stock: {p.stock_level ?? 0})</option>
+                        ))}
+                      </select>
                     </div>
+                    <div className="w-28">
+                      <label className="text-xs text-gray-500 block mb-1">Qty Required</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        value={comp.quantity}
+                        onChange={(e) => updateRecipeComponent(idx, 'quantity', parseFloat(e.target.value) || 1)}
+                        className="w-full px-3 py-2 border rounded-lg bg-white text-sm font-semibold"
+                        required
+                      />
+                    </div>
+                    <div className="pt-5">
+                      <button
+                        type="button"
+                        onClick={() => removeRecipeComponent(idx)}
+                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                        title="Remove Component"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
 
@@ -590,7 +635,7 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
                 className="w-full py-2.5 border-2 border-dashed border-indigo-300 text-indigo-700 hover:bg-indigo-50 rounded-xl text-sm font-semibold flex items-center justify-center space-x-1.5 transition-colors"
               >
                 <FaPlus className="text-xs" />
-                <span>Add Component Part to Recipe</span>
+                <span>Add Component Part to Packing List</span>
               </button>
 
               <div className="flex justify-end space-x-3 pt-4 border-t">

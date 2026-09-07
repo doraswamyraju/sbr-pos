@@ -74,7 +74,7 @@ const Inventory = ({ currentUser }) => {
             )}
 
             {showBOMModal && (
-                <Modal onClose={() => setShowBOMModal(false)}>
+                <Modal onClose={() => setShowBOMModal(false)} maxWidth="max-w-6xl">
                     <BOMManagement
                         allProducts={products}
                         onDataChange={fetchData}

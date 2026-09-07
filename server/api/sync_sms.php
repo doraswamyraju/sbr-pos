@@ -54,17 +54,16 @@ try {
     } else if ($method === 'POST') {
         if ($action === 'push_all') {
             $syncResult = sync_all_products_to_sms($conn);
-            if ($syncResult['success']) {
+            if (!empty($syncResult['success'])) {
                 echo json_encode([
                     "status" => "success",
                     "message" => "All products successfully synchronized to SBR SMS!",
                     "details" => $syncResult
                 ]);
             } else {
-                http_response_code(502);
                 echo json_encode([
                     "status" => "warning",
-                    "message" => "Sync request to SMS backend completed with warnings or error.",
+                    "message" => "Sync completed with status: " . ($syncResult['error'] ?? 'Check SMS backend connectivity'),
                     "details" => $syncResult
                 ]);
             }

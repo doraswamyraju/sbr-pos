@@ -13,6 +13,7 @@ import {
   FaArrowUp,
   FaShoppingCart,
   FaHammer,
+  FaBoxes,
   FaExclamationTriangle,
   FaSync
 } from 'react-icons/fa';
@@ -346,7 +347,7 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
                     {syncingSMS ? 'Syncing...' : 'Sync with SMS'}
                 </button>
                 <button onClick={onOpenBOM} className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all">
-                    <FaHammer className="mr-2" /> BOM & Assembly
+                    <FaBoxes className="mr-2" /> Packing List
                 </button>
                 <button onClick={onRecordPurchase} className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition-colors">
                     <FaShoppingCart className="mr-2" /> Record Purchase

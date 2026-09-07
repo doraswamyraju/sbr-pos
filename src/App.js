@@ -116,8 +116,8 @@ function App() {
 
       <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 w-full ${mainMarginClass} ${isSalesPage ? 'h-screen overflow-hidden' : ''}`}>
         {!isSalesPage && <Header user={currentUser} onLogout={handleLogout} />}
-        <main className={`flex-grow w-full ${isSalesPage ? 'h-screen p-0 m-0 overflow-hidden' : 'p-4 md:p-6'}`}>
-          <div className={isSalesPage ? "w-full h-full" : "max-w-7xl mx-auto w-full"}>
+        <main className={`flex-grow w-full ${isSalesPage ? 'h-screen p-0 m-0 overflow-hidden' : 'p-3 md:p-5'}`}>
+          <div className={isSalesPage ? "w-full h-full" : "w-full"}>
             <Routes>{getRoutes()}</Routes>
           </div>
         </main>
