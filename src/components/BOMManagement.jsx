@@ -12,7 +12,10 @@ import {
   FaExclamationTriangle,
   FaHammer,
   FaTimes,
-  FaSearch
+  FaSearch,
+  FaEdit,
+  FaChevronDown,
+  FaChevronUp
 } from 'react-icons/fa';
 
 const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
@@ -126,19 +129,51 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
     }
   };
 
+  // Expandable component preview for cards
+  const [expandedCardId, setExpandedCardId] = useState(null);
+  const [cardComponents, setCardComponents] = useState({});
+  const [loadingCardComp, setLoadingCardComp] = useState(null);
+
+  const toggleExpandComponents = async (productId) => {
+    if (expandedCardId === productId) {
+      setExpandedCardId(null);
+      return;
+    }
+    setExpandedCardId(productId);
+    if (!cardComponents[productId]) {
+      setLoadingCardComp(productId);
+      try {
+        const res = await axios.get(`${API_BASE_URL}/server/api/assembly.php?action=get_bom&product_id=${productId}`);
+        if (res.data?.components) {
+          setCardComponents(prev => ({ ...prev, [productId]: res.data.components }));
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingCardComp(null);
+      }
+    }
+  };
+
   // Open builder for an existing product
   const openEditPackingList = async (product) => {
     setBuilderProductSource('existing');
     setSelectedFinishedProductId(product.id);
-    setNewProductName('');
-    setNewProductSku('');
-    setNewProductCategory('Finished Goods');
-    setNewProductPrice('');
+    setNewProductName(product.name || '');
+    setNewProductSku(product.sku || '');
+    setNewProductCategory(product.category || 'Finished Goods');
+    setNewProductPrice(product.price ? String(product.price) : '');
     setPackingComponents([]);
     setShowBuilderModal(true);
 
     try {
       const res = await axios.get(`${API_BASE_URL}/server/api/assembly.php?action=get_bom&product_id=${product.id}`);
+      if (res.data?.product) {
+        setNewProductName(res.data.product.name || product.name || '');
+        setNewProductSku(res.data.product.sku || product.sku || '');
+        setNewProductCategory(res.data.product.category || product.category || 'Finished Goods');
+        setNewProductPrice(res.data.product.price ? String(res.data.product.price) : (product.price ? String(product.price) : ''));
+      }
       if (res.data?.components) {
         setPackingComponents(res.data.components.map(c => ({
           component_product_id: c.component_product_id,
@@ -384,16 +419,33 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
                   >
                     <div>
                       <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-bold text-gray-900 text-base">{item.name}</h4>
-                          <span className="text-xs text-gray-500">SKU: {item.sku || 'N/A'}</span>
+                        <div className="flex-1 pr-2">
+                          <h4 className="font-bold text-gray-900 text-base leading-tight">{item.name}</h4>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <span className="text-xs text-gray-500">SKU: {item.sku || 'N/A'}</span>
+                            {item.category && (
+                              <span className="text-[11px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
+                                {item.category}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-xs px-2.5 py-1 bg-purple-100 text-purple-800 font-semibold rounded-full">
-                          {item.component_count} Components
-                        </span>
+                        <div className="flex items-center space-x-1">
+                          <button
+                            type="button"
+                            onClick={() => openEditPackingList(item)}
+                            className="p-1.5 text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-100"
+                            title="Edit Packing List & Product"
+                          >
+                            <FaEdit className="text-sm" />
+                          </button>
+                          <span className="text-xs px-2.5 py-1 bg-purple-100 text-purple-800 font-semibold rounded-full whitespace-nowrap">
+                            {item.component_count} Parts
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-2 gap-2 text-sm bg-gray-50 p-2.5 rounded-lg">
+                      <div className="mt-3.5 grid grid-cols-2 gap-2 text-sm bg-gray-50 p-2.5 rounded-lg border border-gray-100">
                         <div>
                           <span className="text-xs text-gray-500 block">Current Stock</span>
                           <span className="font-bold text-gray-800 text-base">{item.stock_level ?? 0}</span>
@@ -405,12 +457,54 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
                           </span>
                         </div>
                       </div>
+
+                      {/* Expandable Components Inspection */}
+                      <div className="mt-2.5">
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandComponents(item.id)}
+                          className="w-full text-xs font-semibold text-indigo-600 hover:text-indigo-800 py-1.5 px-2.5 rounded-lg bg-indigo-50/60 hover:bg-indigo-50 flex items-center justify-between transition-colors"
+                        >
+                          <span>{expandedCardId === item.id ? 'Hide Components List' : `View ${item.component_count} Required Components`}</span>
+                          {expandedCardId === item.id ? <FaChevronUp className="text-[10px]" /> : <FaChevronDown className="text-[10px]" />}
+                        </button>
+
+                        {expandedCardId === item.id && (
+                          <div className="mt-2 p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-xs space-y-1.5 animate-fade-in max-h-48 overflow-y-auto">
+                            {loadingCardComp === item.id ? (
+                              <div className="text-center py-2 text-gray-400">Loading parts...</div>
+                            ) : cardComponents[item.id] && cardComponents[item.id].length > 0 ? (
+                              cardComponents[item.id].map((c) => (
+                                <div key={c.component_product_id} className="flex justify-between items-center py-1 border-b border-gray-200/60 last:border-0">
+                                  <span className="font-medium text-gray-800 truncate mr-2" title={c.component_name}>
+                                    • {c.component_name}
+                                  </span>
+                                  <span className="text-gray-600 whitespace-nowrap">
+                                    Qty: <strong className="text-indigo-700">{c.required_qty}</strong> | Stock: <strong className={c.current_stock < c.required_qty ? 'text-red-600' : 'text-emerald-700'}>{c.current_stock}</strong>
+                                  </span>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="text-center py-1 text-gray-400">No components found</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="mt-4 pt-3 border-t flex space-x-2">
+                    <div className="mt-4 pt-3 border-t flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditPackingList(item)}
+                        className="py-2 px-3 border border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1 transition-colors"
+                        title="Edit Packing List"
+                      >
+                        <FaEdit />
+                        <span>Edit</span>
+                      </button>
                       <button
                         onClick={() => openAssembleModal(item)}
-                        className={`w-full py-2 px-3 rounded-lg text-sm font-semibold flex items-center justify-center space-x-1.5 shadow-sm transition-colors ${
+                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold flex items-center justify-center space-x-1.5 shadow-sm transition-colors ${
                           canProduce
                             ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
                             : 'bg-gray-100 text-gray-400 cursor-not-allowed'
@@ -673,21 +767,80 @@ const BOMManagement = ({ allProducts = [], onDataChange, onClose }) => {
 
               {/* Section 1: Finished Product Details */}
               {builderProductSource === 'existing' ? (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Finished Product</label>
-                  <select
-                    value={selectedFinishedProductId}
-                    onChange={(e) => setSelectedFinishedProductId(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
-                    required
-                  >
-                    <option value="">-- Choose a Product from Inventory --</option>
-                    {allProducts.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} {p.sku ? `(SKU: ${p.sku})` : ''} - Current Stock: {p.stock_level ?? 0}
-                      </option>
-                    ))}
-                  </select>
+                <div className="space-y-3 bg-gray-50 p-3.5 rounded-xl border">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Select Finished Product</label>
+                    <select
+                      value={selectedFinishedProductId}
+                      onChange={(e) => {
+                        const pid = e.target.value;
+                        setSelectedFinishedProductId(pid);
+                        const found = allProducts.find(p => p.id === parseInt(pid));
+                        if (found) {
+                          setNewProductName(found.name || '');
+                          setNewProductSku(found.sku || '');
+                          setNewProductCategory(found.category || 'Finished Goods');
+                          setNewProductPrice(found.price ? String(found.price) : '');
+                        }
+                      }}
+                      className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                      required
+                    >
+                      <option value="">-- Choose a Product from Inventory --</option>
+                      {allProducts.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} {p.sku ? `(SKU: ${p.sku})` : ''} - Current Stock: {p.stock_level ?? 0}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedFinishedProductId && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
+                      <div className="sm:col-span-2">
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Product Name</label>
+                        <input
+                          type="text"
+                          value={newProductName}
+                          onChange={(e) => setNewProductName(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                          placeholder="Product Name"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">SKU</label>
+                        <input
+                          type="text"
+                          value={newProductSku}
+                          onChange={(e) => setNewProductSku(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                          placeholder="SKU"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Category</label>
+                        <input
+                          type="text"
+                          value={newProductCategory}
+                          onChange={(e) => setNewProductCategory(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                          placeholder="Category"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Selling Price (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={newProductPrice}
+                          onChange={(e) => setNewProductPrice(e.target.value)}
+                          className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-indigo-50/50 p-3.5 rounded-xl border border-indigo-100">

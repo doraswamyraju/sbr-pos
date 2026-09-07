@@ -22,9 +22,9 @@ import ProductForm from './ProductForm';
 import ExcelImport from './ExcelImport';
 import BarcodeModal from './BarcodeModal';
 
-const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, suppliers, onDataChange }) => {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, suppliers, onDataChange, products: parentProducts }) => {
+  const [products, setProducts] = useState(parentProducts || []);
+  const [loading, setLoading] = useState(!parentProducts || parentProducts.length === 0);
   const [error, setError] = useState(null);
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -79,8 +79,13 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
   const [bulkUpdating, setBulkUpdating] = useState(false);
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (parentProducts && Array.isArray(parentProducts)) {
+      setProducts(parentProducts);
+      setLoading(false);
+    } else {
+      fetchProducts();
+    }
+  }, [parentProducts]);
 
   useEffect(() => {
     // update position for go-to-top based on window width (desktop lower, mobile higher)

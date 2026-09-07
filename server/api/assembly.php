@@ -191,6 +191,19 @@ try {
                         $insProd->execute();
                         $finishedProductId = $insProd->insert_id;
                         $insProd->close();
+                    } else if ($finishedProductId > 0 && (!empty($data['new_product_name']) || isset($data['new_product_price']))) {
+                        // Optionally update existing product fields if provided during edit
+                        $uName = trim($data['new_product_name'] ?? '');
+                        $uSku = trim($data['new_product_sku'] ?? '');
+                        $uCategory = trim($data['new_product_category'] ?? '');
+                        $uPrice = isset($data['new_product_price']) ? floatval($data['new_product_price']) : 0.00;
+
+                        if (!empty($uName)) {
+                            $updProd = $conn->prepare("UPDATE products SET name = ?, sku = ?, category = ?, price = ? WHERE id = ?");
+                            $updProd->bind_param("sssdi", $uName, $uSku, $uCategory, $uPrice, $finishedProductId);
+                            $updProd->execute();
+                            $updProd->close();
+                        }
                     }
 
                     // Delete existing BOM components
@@ -224,6 +237,24 @@ try {
                     http_response_code(500);
                     echo json_encode(["error" => "Failed to save packing list: " . $e->getMessage()]);
                 }
+                exit;
+            }
+
+            // Action: Delete Packing List
+            if ($action === 'delete_bom') {
+                $finishedProductId = intval($data['finished_product_id'] ?? 0);
+                if ($finishedProductId <= 0) {
+                    http_response_code(400);
+                    echo json_encode(["error" => "Invalid product ID."]);
+                    exit;
+                }
+
+                $delStmt = $conn->prepare("DELETE FROM product_bom WHERE finished_product_id = ?");
+                $delStmt->bind_param("i", $finishedProductId);
+                $delStmt->execute();
+                $delStmt->close();
+
+                echo json_encode(["status" => "success", "message" => "Packing list removed."]);
                 exit;
             }
 
