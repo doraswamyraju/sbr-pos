@@ -194,4 +194,113 @@ function fetch_agent_inventory_from_sms() {
         return $decoded ?: ['success' => false, 'error' => 'Invalid JSON from SMS API'];
     }
 }
+
+/**
+ * Universal HTTP GET Request Helper
+ */
+function sms_http_get($url, $timeout = 10) {
+    $headers = [
+        "Content-Type: application/json",
+        "x-pos-sync-token: " . SMS_SYNC_TOKEN
+    ];
+
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        unset($ch);
+
+        if ($curlErr) {
+            return ['success' => false, 'error' => $curlErr, 'http_code' => $httpCode];
+        }
+        $decoded = json_decode($response, true);
+        return $decoded ?: ['success' => ($httpCode >= 200 && $httpCode < 300), 'response' => $response];
+    } else {
+        $opts = [
+            'http' => [
+                'method' => 'GET',
+                'header' => implode("\r\n", $headers),
+                'timeout' => $timeout,
+                'ignore_errors' => true
+            ],
+            'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
+        ];
+        $context = stream_context_create($opts);
+        $response = @file_get_contents($url, false, $context);
+        if ($response === false) {
+            return ['success' => false, 'error' => 'Failed to connect to SMS API'];
+        }
+        $decoded = json_decode($response, true);
+        return $decoded ?: ['success' => true, 'response' => $response];
+    }
+}
+
+/**
+ * Fetch pending agent indents from SMS
+ */
+function fetch_pending_indents_from_sms() {
+    $url = rtrim(SMS_API_BASE_URL, '/') . '/agent-inventory/indents/pending';
+    return sms_http_get($url, 10);
+}
+
+/**
+ * Fetch all agent indents from SMS
+ */
+function fetch_all_indents_from_sms() {
+    $url = rtrim(SMS_API_BASE_URL, '/') . '/agent-inventory/indents/all';
+    return sms_http_get($url, 10);
+}
+
+/**
+ * Dispatch an indent in SMS and decrement POS MySQL inventory stock
+ */
+function dispatch_indent_in_sms($conn, $indentId, $remarks = '', $itemQuantities = []) {
+    $url = rtrim(SMS_API_BASE_URL, '/') . '/agent-inventory/indents/' . urlencode($indentId) . '/dispatch';
+    $payload = [
+        'inchargeRemarks' => $remarks ?: 'Dispatched via Central POS Console',
+        'itemQuantities' => $itemQuantities
+    ];
+
+    $res = sms_http_post($url, $payload, 15);
+    
+    // If successfully dispatched in SMS, deduct from MySQL products table
+    if (!empty($res['success']) && !empty($res['response']['data']['items'])) {
+        $items = $res['response']['data']['items'];
+        foreach ($items as $it) {
+            $posProductId = !empty($it['posProductId']) ? intval($it['posProductId']) : 0;
+            $qty = !empty($it['dispatchedQuantity']) ? intval($it['dispatchedQuantity']) : intval($it['requestedQuantity'] ?? 0);
+            $pName = $conn->real_escape_string($it['productName'] ?? '');
+
+            if ($qty > 0) {
+                if ($posProductId > 0) {
+                    $conn->query("UPDATE products SET stock_level = GREATEST(0, stock_level - $qty) WHERE id = $posProductId");
+                } else if (!empty($pName)) {
+                    $conn->query("UPDATE products SET stock_level = GREATEST(0, stock_level - $qty) WHERE name = '$pName' LIMIT 1");
+                }
+            }
+        }
+    }
+
+    return $res;
+}
+
+/**
+ * Reject an indent in SMS
+ */
+function reject_indent_in_sms($indentId, $remarks = '') {
+    $url = rtrim(SMS_API_BASE_URL, '/') . '/agent-inventory/indents/' . urlencode($indentId) . '/reject';
+    $payload = [
+        'inchargeRemarks' => $remarks ?: 'Rejected by Central POS Store Manager'
+    ];
+    return sms_http_post($url, $payload, 10);
+}
 ?>
+

@@ -16,7 +16,11 @@ import {
   FaBoxes,
   FaExclamationTriangle,
   FaSync,
-  FaTruck
+  FaTruck,
+  FaClipboardList,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaCheck
 } from 'react-icons/fa';
 import Modal from './common/Modal';
 import ProductForm from './ProductForm';
@@ -48,6 +52,15 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
   const [agentStockViewTab, setAgentStockViewTab] = useState('byAgent'); // 'byAgent' | 'byProduct'
   const [agentSearchFilter, setAgentSearchFilter] = useState('');
 
+  // SMS Agent Indents Management state
+  const [showIndentsModal, setShowIndentsModal] = useState(false);
+  const [indentsList, setIndentsList] = useState([]);
+  const [loadingIndents, setLoadingIndents] = useState(false);
+  const [pendingIndentsCount, setPendingIndentsCount] = useState(0);
+  const [indentFilter, setIndentFilter] = useState('REQUESTED'); // 'REQUESTED' | 'DISPATCHED' | 'ALL'
+  const [actionInProgressId, setActionInProgressId] = useState(null);
+  const [indentSearchTerm, setIndentSearchTerm] = useState('');
+
   const fetchAgentStock = async () => {
     setLoadingAgentStock(true);
     try {
@@ -65,6 +78,74 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
   const openAgentInventoryModal = () => {
     setShowAgentStockModal(true);
     fetchAgentStock();
+  };
+
+  const fetchIndents = async () => {
+    setLoadingIndents(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/server/api/sync_sms.php?action=all_indents`);
+      if (res.data && res.data.success && Array.isArray(res.data.data)) {
+        setIndentsList(res.data.data);
+        const pending = res.data.data.filter(i => i.status === 'REQUESTED').length;
+        setPendingIndentsCount(pending);
+      }
+    } catch (err) {
+      console.error('Failed to load agent indents:', err);
+    } finally {
+      setLoadingIndents(false);
+    }
+  };
+
+  const openIndentsModal = () => {
+    setShowIndentsModal(true);
+    fetchIndents();
+  };
+
+  const handleDispatchIndent = async (indentId, remarks = '') => {
+    if (!window.confirm('Are you sure you want to approve & dispatch these parts to the agent? This will deduct the parts from central POS stock and add them to the agent van kit.')) return;
+    setActionInProgressId(indentId);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/server/api/sync_sms.php?action=dispatch_indent`, {
+        indent_id: indentId,
+        remarks: remarks || 'Dispatched via Central POS Console'
+      });
+      if (res.data && (res.data.success || res.data.status === 'success')) {
+        alert('Indent approved & dispatched successfully! Central stock updated.');
+        await fetchIndents();
+        if (onDataChange) onDataChange();
+        fetchProducts();
+      } else {
+        alert(res.data?.error || res.data?.message || 'Failed to dispatch indent.');
+      }
+    } catch (err) {
+      console.error('Dispatch indent error:', err);
+      alert('Error dispatching indent: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setActionInProgressId(null);
+    }
+  };
+
+  const handleRejectIndent = async (indentId) => {
+    const reason = window.prompt('Enter reason for rejecting this indent requisition:');
+    if (reason === null) return;
+    setActionInProgressId(indentId);
+    try {
+      const res = await axios.post(`${API_BASE_URL}/server/api/sync_sms.php?action=reject_indent`, {
+        indent_id: indentId,
+        remarks: reason || 'Rejected by Central POS Store Manager'
+      });
+      if (res.data && (res.data.success || res.data.status === 'success')) {
+        alert('Indent requisition marked as rejected.');
+        await fetchIndents();
+      } else {
+        alert(res.data?.error || res.data?.message || 'Failed to reject indent.');
+      }
+    } catch (err) {
+      console.error('Reject indent error:', err);
+      alert('Error rejecting indent: ' + (err.response?.data?.error || err.message));
+    } finally {
+      setActionInProgressId(null);
+    }
   };
 
   const handleSyncWithSMS = async () => {
@@ -112,6 +193,7 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
     } else {
       fetchProducts();
     }
+    fetchIndents();
   }, [parentProducts]);
 
   useEffect(() => {
@@ -340,6 +422,14 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
                 <FaSync className={`mr-2 ${syncingSMS ? 'animate-spin' : ''}`} />
                 {syncingSMS ? 'Syncing with SMS...' : 'Sync Catalog to SMS'}
             </button>
+            <button onClick={openIndentsModal} className="w-full flex items-center justify-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow-md font-semibold transition-colors">
+                <FaClipboardList className="mr-2" /> Agent Indents
+                {pendingIndentsCount > 0 && (
+                  <span className="ml-2 bg-white text-amber-900 px-2 py-0.5 rounded-full text-xs font-black">
+                    {pendingIndentsCount} PENDING
+                  </span>
+                )}
+            </button>
             <button onClick={openAgentInventoryModal} className="w-full flex items-center justify-center px-4 py-2 bg-indigo-800 text-white rounded-lg shadow-md font-semibold">
                 <FaTruck className="mr-2" /> Agent Van Kits
             </button>
@@ -380,6 +470,18 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
                 >
                     <FaSync className={`mr-2 ${syncingSMS ? 'animate-spin' : ''}`} />
                     {syncingSMS ? 'Syncing...' : 'Sync with SMS'}
+                </button>
+                <button
+                    onClick={openIndentsModal}
+                    className="flex items-center px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow-md font-semibold transition-colors relative"
+                    title="Review & approve parts requisitions submitted by SMS field agents"
+                >
+                    <FaClipboardList className="mr-2" /> Agent Indents
+                    {pendingIndentsCount > 0 && (
+                      <span className="ml-2 bg-white text-amber-900 px-2 py-0.5 rounded-full text-xs font-black animate-pulse">
+                        {pendingIndentsCount} PENDING
+                      </span>
+                    )}
                 </button>
                 <button
                     onClick={openAgentInventoryModal}
@@ -857,6 +959,263 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
           </div>
         </Modal>
       )}
+
+      {/* SMS Agent Indent Requisitions Modal */}
+      {showIndentsModal && (
+        <Modal onClose={() => setShowIndentsModal(false)} maxWidth="max-w-5xl">
+          <div className="p-4 md:p-6 space-y-4">
+            
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b gap-2">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FaClipboardList className="text-amber-600" /> Field Agent Indent Requisitions
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Approve parts requests from SMS field agents and directly issue inventory from Central POS warehouse to Agent Van Kits.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchIndents}
+                  disabled={loadingIndents}
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors"
+                >
+                  <FaSync className={`text-xs ${loadingIndents ? 'animate-spin' : ''}`} /> Refresh
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Tabs & Search */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+              <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
+                <button
+                  onClick={() => setIndentFilter('REQUESTED')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    indentFilter === 'REQUESTED'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Pending Approval ({indentsList.filter(i => i.status === 'REQUESTED').length})
+                </button>
+                <button
+                  onClick={() => setIndentFilter('DISPATCHED')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    indentFilter === 'DISPATCHED'
+                      ? 'bg-green-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  Dispatched ({indentsList.filter(i => i.status === 'DISPATCHED').length})
+                </button>
+                <button
+                  onClick={() => setIndentFilter('ALL')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    indentFilter === 'ALL'
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  All History ({indentsList.length})
+                </button>
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <input
+                  type="text"
+                  placeholder="Search agent, service or parts..."
+                  value={indentSearchTerm}
+                  onChange={(e) => setIndentSearchTerm(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-amber-500"
+                />
+                <FaSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+              </div>
+            </div>
+
+            {/* Indent Cards List */}
+            {loadingIndents ? (
+              <div className="py-16 text-center text-gray-500">
+                <FaSync className="animate-spin text-2xl mx-auto mb-2 text-amber-600" />
+                Loading requisitions from SMS...
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                {(() => {
+                  const filtered = indentsList
+                    .filter(ind => {
+                      if (indentFilter !== 'ALL' && ind.status !== indentFilter) return false;
+                      if (!indentSearchTerm) return true;
+                      const term = indentSearchTerm.toLowerCase();
+                      const aName = ind.agentId?.name?.toLowerCase() || '';
+                      const aPhone = ind.agentId?.phone || '';
+                      const sType = ind.serviceRequestId?.serviceType?.toLowerCase() || '';
+                      const pNames = (ind.items || []).map(i => i.productName?.toLowerCase()).join(' ');
+                      return aName.includes(term) || aPhone.includes(term) || sType.includes(term) || pNames.includes(term);
+                    });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-2xl border border-dashed">
+                        <FaClipboardList className="text-3xl text-gray-300 mx-auto mb-2" />
+                        <p className="font-semibold text-sm text-gray-700">No indent requisitions found in this view</p>
+                        <p className="text-xs text-gray-500 mt-0.5">When SMS agents request parts for services or van stock, they will appear here for dispatch.</p>
+                      </div>
+                    );
+                  }
+
+                  return filtered.map(indent => {
+                    const isPending = indent.status === 'REQUESTED';
+                    const isDispatched = indent.status === 'DISPATCHED';
+                    const isRejected = indent.status === 'REJECTED';
+                    const isWorking = actionInProgressId === indent._id;
+
+                    return (
+                      <div
+                        key={indent._id}
+                        className={`border rounded-2xl p-5 bg-white shadow-sm hover:shadow-md transition-all ${
+                          isPending ? 'border-amber-300 bg-amber-50/20' : 'border-gray-200'
+                        }`}
+                      >
+                        {/* Top Meta Bar */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b gap-2">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-800 font-bold flex items-center justify-center text-sm">
+                              {indent.agentId?.name?.charAt(0).toUpperCase() || 'A'}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-gray-900 text-sm">{indent.agentId?.name || 'Field Agent'}</h4>
+                                {indent.agentId?.phone && (
+                                  <span className="text-xs text-gray-500 font-mono">📞 {indent.agentId.phone}</span>
+                                )}
+                              </div>
+                              <div className="text-xs text-gray-500 flex items-center gap-3 mt-0.5">
+                                <span>Requested: {new Date(indent.requestedAt || indent.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                                {indent.serviceRequestId && (
+                                  <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-semibold text-[11px] border border-indigo-200">
+                                    For Job: {indent.serviceRequestId.serviceType}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Status Badge */}
+                          <div>
+                            {isPending ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-800 px-3 py-1 rounded-full border border-amber-300">
+                                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                Awaiting Store Dispatch
+                              </span>
+                            ) : isDispatched ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-bold bg-green-100 text-green-800 px-3 py-1 rounded-full border border-green-300">
+                                <FaCheck className="text-green-600 text-xs" />
+                                Dispatched to Van
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs font-bold bg-red-100 text-red-800 px-3 py-1 rounded-full border border-red-300">
+                                <FaTimes className="text-red-600 text-xs" />
+                                Rejected
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Agent Note */}
+                        {indent.agentRemarks && (
+                          <div className="mt-3 p-2.5 bg-gray-50 rounded-xl text-xs text-gray-700 italic border border-gray-100">
+                            <strong>Agent Remarks:</strong> "{indent.agentRemarks}"
+                          </div>
+                        )}
+
+                        {/* Store Incharge Note */}
+                        {indent.inchargeRemarks && (
+                          <div className="mt-2 p-2 bg-emerald-50 text-emerald-800 rounded-lg text-xs border border-emerald-200">
+                            <strong>Store Notes:</strong> {indent.inchargeRemarks}
+                          </div>
+                        )}
+
+                        {/* Requested Parts Table */}
+                        <div className="mt-4 border rounded-xl overflow-hidden shadow-xs">
+                          <table className="min-w-full divide-y divide-gray-200 text-xs">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase">Part / Product Name</th>
+                                <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase">SKU</th>
+                                <th className="px-3 py-2 text-center font-semibold text-gray-600 uppercase">Requested Qty</th>
+                                <th className="px-3 py-2 text-center font-semibold text-gray-600 uppercase">Central POS Stock</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100 bg-white">
+                              {(indent.items || []).map((it, idx) => {
+                                // Match with central POS products by posProductId or name
+                                const matchedPosProd = products.find(p => 
+                                  (it.posProductId && Number(p.id) === Number(it.posProductId)) ||
+                                  (p.name && p.name.trim().toLowerCase() === it.productName.trim().toLowerCase())
+                                );
+                                const curStock = matchedPosProd ? Number(matchedPosProd.stock_level ?? matchedPosProd.stock ?? 0) : null;
+                                const hasSufficient = curStock !== null && curStock >= it.requestedQuantity;
+
+                                return (
+                                  <tr key={idx} className="hover:bg-gray-50">
+                                    <td className="px-3 py-2 font-bold text-gray-900">{it.productName}</td>
+                                    <td className="px-3 py-2 text-gray-500 font-mono">{it.sku || matchedPosProd?.sku || '-'}</td>
+                                    <td className="px-3 py-2 text-center font-black text-amber-700 text-sm">
+                                      {it.dispatchedQuantity > 0 ? `${it.dispatchedQuantity} / ${it.requestedQuantity}` : it.requestedQuantity}
+                                    </td>
+                                    <td className="px-3 py-2 text-center">
+                                      {curStock === null ? (
+                                        <span className="text-gray-400 font-medium">Unlinked Item</span>
+                                      ) : hasSufficient ? (
+                                        <span className="inline-flex items-center gap-1 font-bold text-green-700 bg-green-50 px-2 py-0.5 rounded border border-green-200">
+                                          <FaCheckCircle className="text-xs" /> {curStock} in Store
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1 font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+                                          <FaExclamationTriangle className="text-xs" /> {curStock} Low/Short
+                                        </span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Action Buttons for Pending Requisition */}
+                        {isPending && (
+                          <div className="mt-4 pt-3 border-t flex items-center justify-end gap-2.5">
+                            <button
+                              onClick={() => handleRejectIndent(indent._id)}
+                              disabled={isWorking}
+                              className="px-4 py-2 bg-gray-100 hover:bg-red-50 text-gray-700 hover:text-red-700 border rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+                            >
+                              Reject
+                            </button>
+                            <button
+                              onClick={() => handleDispatchIndent(indent._id)}
+                              disabled={isWorking}
+                              className="px-5 py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5 disabled:opacity-50"
+                            >
+                              <FaCheckCircle className="text-xs" />
+                              {isWorking ? 'Dispatching & Updating Stock...' : 'Approve & Dispatch Stock to Agent'}
+                            </button>
+                          </div>
+                        )}
+
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
+
+          </div>
+        </Modal>
+      )}
+
 
       {/* Floating search button for mobile */}
       <div className="md:hidden">

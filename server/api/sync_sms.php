@@ -51,11 +51,21 @@ try {
             $invData = fetch_agent_inventory_from_sms();
             echo json_encode($invData);
             exit;
+        } else if ($action === 'pending_indents') {
+            $indents = fetch_pending_indents_from_sms();
+            echo json_encode($indents);
+            exit;
+        } else if ($action === 'all_indents') {
+            $indents = fetch_all_indents_from_sms();
+            echo json_encode($indents);
+            exit;
         } else {
             http_response_code(400);
             echo json_encode(["error" => "Invalid action specified."]);
         }
     } else if ($method === 'POST') {
+        $body = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+
         if ($action === 'push_all') {
             $syncResult = sync_all_products_to_sms($conn);
             if (!empty($syncResult['success'])) {
@@ -71,9 +81,36 @@ try {
                     "details" => $syncResult
                 ]);
             }
+        } else if ($action === 'dispatch_indent') {
+            $indentId = $body['indent_id'] ?? $_GET['indent_id'] ?? '';
+            $remarks = $body['remarks'] ?? 'Dispatched via Central POS Console';
+            $itemQuantities = $body['item_quantities'] ?? [];
+
+            if (empty($indentId)) {
+                http_response_code(400);
+                echo json_encode(["status" => "error", "message" => "Missing indent_id parameter"]);
+                exit;
+            }
+
+            $res = dispatch_indent_in_sms($conn, $indentId, $remarks, $itemQuantities);
+            echo json_encode($res);
+            exit;
+        } else if ($action === 'reject_indent') {
+            $indentId = $body['indent_id'] ?? $_GET['indent_id'] ?? '';
+            $remarks = $body['remarks'] ?? 'Rejected by Central POS Store Manager';
+
+            if (empty($indentId)) {
+                http_response_code(400);
+                echo json_encode(["status" => "error", "message" => "Missing indent_id parameter"]);
+                exit;
+            }
+
+            $res = reject_indent_in_sms($indentId, $remarks);
+            echo json_encode($res);
+            exit;
         } else {
             http_response_code(400);
-            echo json_encode(["error" => "Invalid POST action. Use action=push_all"]);
+            echo json_encode(["error" => "Invalid POST action."]);
         }
     } else {
         http_response_code(405);
