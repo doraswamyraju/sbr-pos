@@ -145,4 +145,53 @@ function sync_all_products_to_sms($conn) {
     $result['total_sent'] = count($products);
     return $result;
 }
+
+/**
+ * Fetch Agent Van Kit inventory from SMS Backend
+ */
+function fetch_agent_inventory_from_sms() {
+    $url = rtrim(SMS_API_BASE_URL, '/') . '/agent-inventory/pos-summary';
+    
+    // cURL Method
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            "Content-Type: application/json",
+            "x-pos-sync-token: " . SMS_SYNC_TOKEN
+        ]);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 4);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = curl_error($ch);
+        curl_close($ch);
+        
+        if ($curlErr) {
+            return ['success' => false, 'error' => $curlErr];
+        }
+        $decoded = json_decode($response, true);
+        return $decoded ?: ['success' => false, 'error' => 'Invalid JSON response from SMS API'];
+    } else {
+        $opts = [
+            'http' => [
+                'method' => 'GET',
+                'header' => "Content-Type: application/json\r\nx-pos-sync-token: " . SMS_SYNC_TOKEN . "\r\n",
+                'timeout' => 10,
+                'ignore_errors' => true
+            ],
+            'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
+        ];
+        $context = stream_context_create($opts);
+        $response = @file_get_contents($url, false, $context);
+        if ($response === false) {
+            return ['success' => false, 'error' => 'Failed to reach SMS API'];
+        }
+        $decoded = json_decode($response, true);
+        return $decoded ?: ['success' => false, 'error' => 'Invalid JSON from SMS API'];
+    }
+}
 ?>

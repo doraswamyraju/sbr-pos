@@ -15,7 +15,8 @@ import {
   FaHammer,
   FaBoxes,
   FaExclamationTriangle,
-  FaSync
+  FaSync,
+  FaTruck
 } from 'react-icons/fa';
 import Modal from './common/Modal';
 import ProductForm from './ProductForm';
@@ -39,6 +40,32 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
   // SMS Sync state
   const [syncingSMS, setSyncingSMS] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null);
+
+  // SMS Agent Allotted Stock Inspector state
+  const [showAgentStockModal, setShowAgentStockModal] = useState(false);
+  const [agentStockSummary, setAgentStockSummary] = useState(null);
+  const [loadingAgentStock, setLoadingAgentStock] = useState(false);
+  const [agentStockViewTab, setAgentStockViewTab] = useState('byAgent'); // 'byAgent' | 'byProduct'
+  const [agentSearchFilter, setAgentSearchFilter] = useState('');
+
+  const fetchAgentStock = async () => {
+    setLoadingAgentStock(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/server/api/sync_sms.php?action=agent_inventory`);
+      if (res.data && res.data.success) {
+        setAgentStockSummary(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load agent inventory:', err);
+    } finally {
+      setLoadingAgentStock(false);
+    }
+  };
+
+  const openAgentInventoryModal = () => {
+    setShowAgentStockModal(true);
+    fetchAgentStock();
+  };
 
   const handleSyncWithSMS = async () => {
     try {
@@ -313,8 +340,11 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
                 <FaSync className={`mr-2 ${syncingSMS ? 'animate-spin' : ''}`} />
                 {syncingSMS ? 'Syncing with SMS...' : 'Sync Catalog to SMS'}
             </button>
+            <button onClick={openAgentInventoryModal} className="w-full flex items-center justify-center px-4 py-2 bg-indigo-800 text-white rounded-lg shadow-md font-semibold">
+                <FaTruck className="mr-2" /> Agent Van Kits
+            </button>
             <button onClick={onOpenBOM} className="w-full flex items-center justify-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md font-semibold">
-                <FaHammer className="mr-2" /> Packing List & BOM Assembly
+                <FaHammer className="mr-2" /> Packing List
             </button>
             <button onClick={onRecordPurchase} className="w-full flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg shadow-md">
                 <FaShoppingCart className="mr-2" /> Record New Purchase
@@ -350,6 +380,13 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
                 >
                     <FaSync className={`mr-2 ${syncingSMS ? 'animate-spin' : ''}`} />
                     {syncingSMS ? 'Syncing...' : 'Sync with SMS'}
+                </button>
+                <button
+                    onClick={openAgentInventoryModal}
+                    className="flex items-center px-4 py-2 bg-indigo-800 hover:bg-indigo-900 text-white rounded-lg shadow-md font-semibold transition-colors"
+                    title="View live stock allocated to SMS field agents"
+                >
+                    <FaTruck className="mr-2" /> Agent Van Kits
                 </button>
                 <button onClick={onOpenBOM} className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-md font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all">
                     <FaBoxes className="mr-2" /> Packing List
@@ -635,6 +672,188 @@ const InventoryDashboard = ({ onRecordPurchase, onAddProduct, onOpenBOM, supplie
                 {bulkUpdating ? 'Updating...' : 'Apply to selected'}
               </button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* SMS Field Agent Allotted Stock Modal */}
+      {showAgentStockModal && (
+        <Modal onClose={() => setShowAgentStockModal(false)} maxWidth="max-w-5xl">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b gap-3">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-gradient-to-br from-indigo-600 to-blue-700 rounded-xl text-white shadow-md">
+                  <FaTruck className="text-xl" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">SMS Field Agent Allotted Stock (Van Kits)</h3>
+                  <p className="text-xs text-gray-500">Live spare parts and kits in transit / with field agents from SMS application</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={fetchAgentStock}
+                  disabled={loadingAgentStock}
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold flex items-center space-x-1"
+                >
+                  <FaSync className={loadingAgentStock ? 'animate-spin' : ''} />
+                  <span>Refresh</span>
+                </button>
+                <button onClick={() => setShowAgentStockModal(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-lg">
+                  <FaTimes />
+                </button>
+              </div>
+            </div>
+
+            {/* Summary KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+              <div className="bg-indigo-50 border border-indigo-100 p-3.5 rounded-xl">
+                <span className="text-xs font-semibold text-indigo-700 block uppercase tracking-wider">Total Units in Field</span>
+                <span className="text-2xl font-black text-indigo-900 mt-1 block">
+                  {agentStockSummary?.totalItemsAllotted ?? 0}
+                </span>
+                <span className="text-[11px] text-indigo-600">Spare parts in active van kits</span>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-100 p-3.5 rounded-xl">
+                <span className="text-xs font-semibold text-emerald-700 block uppercase tracking-wider">Active Agents Carrying Stock</span>
+                <span className="text-2xl font-black text-emerald-900 mt-1 block">
+                  {agentStockSummary?.totalAgentsWithStock ?? 0}
+                </span>
+                <span className="text-[11px] text-emerald-600">Field service technicians</span>
+              </div>
+              <div className="bg-purple-50 border border-purple-100 p-3.5 rounded-xl">
+                <span className="text-xs font-semibold text-purple-700 block uppercase tracking-wider">Unique Spare Parts</span>
+                <span className="text-2xl font-black text-purple-900 mt-1 block">
+                  {agentStockSummary?.byProduct?.length ?? 0}
+                </span>
+                <span className="text-[11px] text-purple-600">Catalog SKUs deployed</span>
+              </div>
+            </div>
+
+            {/* Tabs & Search */}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mb-3 border-b pb-2">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => setAgentStockViewTab('byAgent')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    agentStockViewTab === 'byAgent'
+                      ? 'bg-indigo-600 text-white shadow'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  By Field Agent ({agentStockSummary?.byAgent?.length ?? 0})
+                </button>
+                <button
+                  onClick={() => setAgentStockViewTab('byProduct')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    agentStockViewTab === 'byProduct'
+                      ? 'bg-indigo-600 text-white shadow'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  By Product / Part ({agentStockSummary?.byProduct?.length ?? 0})
+                </button>
+              </div>
+
+              <div className="relative w-full sm:w-56">
+                <input
+                  type="text"
+                  placeholder="Filter agents or parts..."
+                  value={agentSearchFilter}
+                  onChange={(e) => setAgentSearchFilter(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 border rounded-lg text-xs focus:ring-2 focus:ring-indigo-500"
+                />
+                <FaSearch className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs" />
+              </div>
+            </div>
+
+            {/* Content List */}
+            {loadingAgentStock ? (
+              <div className="py-12 text-center text-gray-500">Loading Agent Stock from SMS...</div>
+            ) : agentStockViewTab === 'byAgent' ? (
+              <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                {(!agentStockSummary?.byAgent || agentStockSummary.byAgent.length === 0) ? (
+                  <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-xl border border-dashed">
+                    No field agents currently have stock allocated in their Van Kits.
+                  </div>
+                ) : (
+                  agentStockSummary.byAgent
+                    .filter(a => !agentSearchFilter || a.name.toLowerCase().includes(agentSearchFilter.toLowerCase()) || (a.phone && a.phone.includes(agentSearchFilter)))
+                    .map(agent => (
+                      <div key={agent.agentId} className="border rounded-xl p-4 bg-white shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start pb-2.5 border-b">
+                          <div className="flex items-center space-x-2.5">
+                            <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-sm">
+                              {agent.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-900 text-sm">{agent.name}</h4>
+                              <div className="text-xs text-gray-500 space-x-2">
+                                {agent.phone && <span>📞 {agent.phone}</span>}
+                                {agent.email && <span>✉ {agent.email}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          <span className="px-3 py-1 bg-indigo-50 text-indigo-800 text-xs font-bold rounded-full border border-indigo-200">
+                            {agent.totalQuantity} Units in Van
+                          </span>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                          {agent.items.map((item, i) => (
+                            <div key={i} className="flex justify-between items-center bg-gray-50 p-2 rounded-lg text-xs border border-gray-100">
+                              <div className="truncate mr-2">
+                                <span className="font-medium text-gray-900 block truncate">{item.productName}</span>
+                                {item.sku && <span className="text-[10px] text-gray-500 block">SKU: {item.sku}</span>}
+                              </div>
+                              <span className="font-bold text-indigo-700 bg-white px-2 py-0.5 rounded shadow-sm border whitespace-nowrap">
+                                {item.quantity} pcs
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto border rounded-xl shadow-sm max-h-[55vh]">
+                <table className="min-w-full divide-y divide-gray-200 text-xs">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase">Product / Part Name</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase">SKU</th>
+                      <th className="px-4 py-3 text-right font-semibold text-gray-600 uppercase">Total in Field</th>
+                      <th className="px-4 py-3 text-left font-semibold text-gray-600 uppercase">Agents Carrying</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 bg-white">
+                    {(!agentStockSummary?.byProduct || agentStockSummary.byProduct.length === 0) ? (
+                      <tr>
+                        <td colSpan="4" className="text-center py-6 text-gray-500">No products deployed with agents yet.</td>
+                      </tr>
+                    ) : (
+                      agentStockSummary.byProduct
+                        .filter(p => !agentSearchFilter || p.productName.toLowerCase().includes(agentSearchFilter.toLowerCase()))
+                        .map((p, idx) => (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            <td className="px-4 py-2.5 font-bold text-gray-900">{p.productName}</td>
+                            <td className="px-4 py-2.5 text-gray-500">{p.sku || '-'}</td>
+                            <td className="px-4 py-2.5 text-right font-bold text-indigo-700 text-sm">{p.totalAllotted} units</td>
+                            <td className="px-4 py-2.5 text-gray-600">
+                              {p.agents.map((a, i) => (
+                                <span key={i} className="inline-block bg-gray-100 rounded px-2 py-0.5 mr-1 mb-1 text-[11px]">
+                                  {a.agentName}: <strong>{a.quantity}</strong>
+                                </span>
+                              ))}
+                            </td>
+                          </tr>
+                        ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </Modal>
       )}

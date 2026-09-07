@@ -47,6 +47,10 @@ try {
                 "http_code" => $httpCode,
                 "error" => $curlErr ?: null
             ]);
+        } else if ($action === 'agent_inventory') {
+            $invData = fetch_agent_inventory_from_sms();
+            echo json_encode($invData);
+            exit;
         } else {
             http_response_code(400);
             echo json_encode(["error" => "Invalid action specified."]);
