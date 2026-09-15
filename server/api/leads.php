@@ -4,28 +4,42 @@ require_once __DIR__ . '/../cors.php';
 // Complete API for Leads used by the React frontend
 
 // Enable detailed PHP error reporting for debugging
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+ini_set('display_errors', 0);
+error_reporting(0);
 
 header('Content-Type: application/json; charset=utf-8');
 
-// Basic CORS (adjust for production)
-} else {
-        $sql = "SELECT $select_fields FROM leads ORDER BY created_at DESC";
-        $result = $conn->query($sql);
-        
-        if (!$result) {
-            errorJson("Query failed: " . $conn->error, 500);
-        }
+session_start();
 
-        $leads = [];
-        while ($row = $result->fetch_assoc()) {
-            $leads[] = $row;
-        }
-        successJson(['data' => $leads]);
-    }
+// Helper functions for JSON responses
+function errorJson($message, $code = 400) {
+    http_response_code($code);
+    echo json_encode(['success' => false, 'message' => $message]);
+    exit;
 }
+
+function successJson($data = ['message' => 'Success']) {
+    echo json_encode(array_merge(['success' => true], $data));
+    exit;
+}
+
+// Function to read JSON input
+function jsonInput() {
+    $input = file_get_contents("php://input");
+    $decoded = json_decode($input, true);
+    return is_array($decoded) ? $decoded : null;
+}
+
+// Load DB connection
+require_once __DIR__ . '/../db_connect.php';
+
+// Check if MySQLi connection is valid
+if ($conn->connect_error) {
+    errorJson("Database Connection Failed: " . $conn->connect_error, 500);
+}
+
+$method = $_SERVER['REQUEST_METHOD'];
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 // Helper: flexible getter for common field name variants
 function flex_get($data, $variants = []) {
@@ -51,118 +65,161 @@ function flex_get($data, $variants = []) {
     return null;
 }
 
+// GET: list or single lead
+if ($method === 'GET') {
+    $select_fields = "id, full_name, contact_info, email, source, assigned_to_user_id, followup_reminder, status, notes, address, created_at";
+    
+    if ($id > 0) {
+        $sql = "SELECT $select_fields FROM leads WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $lead = $result->fetch_assoc();
+        if ($lead) {
+            successJson(['data' => $lead]);
+        } else {
+            errorJson('Lead not found', 404);
+        }
+    } else {
+        $sql = "SELECT $select_fields FROM leads ORDER BY created_at DESC";
+        $result = $conn->query($sql);
+        
+        if (!$result) {
+            errorJson("Query failed: " . $conn->error, 500);
+        }
+
+        $leads = [];
+        while ($row = $result->fetch_assoc()) {
+            $leads[] = $row;
+        }
+        successJson(['data' => $leads]);
+    }
+}
+
 // POST: create new lead
 if ($method === 'POST') {
     // Accept JSON body or form-encoded POST
     $body = jsonInput();
     if ($body === null) {
-        // fall back to $_POST
         $body = $_POST;
     }
 
-    // Map common variants -> canonical names
-    $full_name = trim((string) (flex_get($body, ['full_name','Full Name','Name','name']) ?? ''));
-    $phone     = trim((string) (flex_get($body, ['phone_number','phone','Phone','contact_info','contact']) ?? ''));
-    $email     = trim((string) (flex_get($body, ['email','Email','e-mail']) ?? ''));
-    $source    = trim((string) (flex_get($body, ['source','Source']) ?? ''));
-    $assigned  = flex_get($body, ['assigned_to_user_id','Assigned To','assigned_to','assigned']);
-    $status    = trim((string) (flex_get($body, ['status','Status']) ?? ''));
-    $notes     = trim((string) (flex_get($body, ['notes','Notes','note']) ?? ''));
-    $address   = trim((string) (flex_get($body, ['address','Address']) ?? ''));
-    $followup  = flex_get($body, ['followup_reminder','followup_reminder']);
+    $full_name = flex_get($body, ['full_name', 'name', 'client_name', 'customer_name']) ?? '';
+    $contact_info = flex_get($body, ['contact_info', 'phone', 'mobile', 'phone_number']) ?? '';
+    $email = flex_get($body, ['email', 'email_address']) ?? null;
+    $source = flex_get($body, ['source', 'lead_source']) ?? 'Direct';
+    $assigned_to_user_id = flex_get($body, ['assigned_to_user_id', 'assigned_to', 'user_id', 'agent_id']);
+    $followup_reminder = flex_get($body, ['followup_reminder', 'reminder_date', 'followup_date']);
+    $status = flex_get($body, ['status', 'lead_status']) ?? 'New';
+    $notes = flex_get($body, ['notes', 'remarks', 'comment']) ?? null;
+    $address = flex_get($body, ['address', 'location']) ?? null;
 
-    // Normalize assigned to integer or null
-    if ($assigned !== null && $assigned !== '') {
-        $assigned = (int) $assigned;
-    } else {
-        $assigned = null;
+    if (empty($full_name)) {
+        errorJson('Name / Customer Name is required', 422);
+    }
+    if (empty($contact_info)) {
+        errorJson('Contact info / Phone is required', 422);
     }
 
-    // Required fields: ensure canonical names are present
-    // Keep original required set but use mapped values
-    $required_missing = [];
-    if ($full_name === '') $required_missing[] = 'full_name (or Name)';
-    if ($phone === '') $required_missing[] = 'phone_number (or Phone)';
-    if ($email === '') $required_missing[] = 'email';
-    if ($source === '') $required_missing[] = 'source';
+    $assigned_param = ($assigned_to_user_id !== null && $assigned_to_user_id !== '') ? (int)$assigned_to_user_id : null;
+    $followup_param = !empty($followup_reminder) ? $followup_reminder : null;
 
-    if (!empty($required_missing)) {
-        errorJson('Missing required field: ' . implode(', ', $required_missing), 422);
-    }
-
-    $sql = "INSERT INTO leads (full_name, contact_info, email, source, assigned_to_user_id, status, notes, address, followup_reminder) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    $sql = "INSERT INTO leads (full_name, contact_info, email, source, assigned_to_user_id, followup_reminder, status, notes, address) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
-        errorJson('Prepare failed: ' . $conn->error, 500);
+        errorJson("Prepare failed: " . $conn->error, 500);
     }
 
-    // Bind parameters with correct types
-    // followup_reminder may be null/string; we pass as string
-    $stmt->bind_param('ssssissss', $full_name, $phone, $email, $source, $assigned, $status, $notes, $address, $followup);
+    $stmt->bind_param('ssssissss', $full_name, $contact_info, $email, $source, $assigned_param, $followup_param, $status, $notes, $address);
 
     if ($stmt->execute()) {
-        successJson(['message' => 'Lead created', 'id' => $conn->insert_id]);
+        $new_id = $conn->insert_id;
+        successJson(['message' => 'Lead created successfully', 'lead_id' => $new_id]);
     } else {
-        errorJson('Failed to create lead: ' . $stmt->error, 500);
+        errorJson("Execute failed: " . $stmt->error, 500);
     }
 }
 
 // PUT: update lead
 if ($method === 'PUT') {
     if ($id <= 0) {
-        errorJson('Missing lead id', 422);
+        errorJson('Lead ID is required for update', 400);
     }
-    $data = jsonInput();
-    $updates = [];
+
+    $body = jsonInput();
+    if ($body === null) {
+        errorJson('Invalid JSON body', 400);
+    }
+
+    $full_name = flex_get($body, ['full_name', 'name']);
+    $contact_info = flex_get($body, ['contact_info', 'phone', 'mobile']);
+    $email = flex_get($body, ['email']);
+    $source = flex_get($body, ['source']);
+    $assigned_to_user_id = flex_get($body, ['assigned_to_user_id', 'assigned_to', 'user_id', 'agent_id']);
+    $followup_reminder = flex_get($body, ['followup_reminder', 'reminder_date']);
+    $status = flex_get($body, ['status']);
+    $notes = flex_get($body, ['notes', 'remarks']);
+    $address = flex_get($body, ['address']);
+
+    $fields = [];
     $params = [];
     $types = '';
 
-    $fields_to_update = ['full_name', 'contact_info', 'email', 'source', 'assigned_to_user_id', 'followup_reminder', 'status', 'notes', 'address'];
-    
-    if (isset($data['phone_number']) && !isset($data['contact_info'])) {
-        $data['contact_info'] = $data['phone_number'];
+    if ($full_name !== null) { $fields[] = 'full_name = ?'; $params[] = $full_name; $types .= 's'; }
+    if ($contact_info !== null) { $fields[] = 'contact_info = ?'; $params[] = $contact_info; $types .= 's'; }
+    if ($email !== null) { $fields[] = 'email = ?'; $params[] = $email; $types .= 's'; }
+    if ($source !== null) { $fields[] = 'source = ?'; $params[] = $source; $types .= 's'; }
+    if ($assigned_to_user_id !== null) { 
+        $fields[] = 'assigned_to_user_id = ?'; 
+        $params[] = ($assigned_to_user_id === '' ? null : (int)$assigned_to_user_id); 
+        $types .= 'i'; 
+    }
+    if ($followup_reminder !== null) { 
+        $fields[] = 'followup_reminder = ?'; 
+        $params[] = (!empty($followup_reminder) ? $followup_reminder : null); 
+        $types .= 's'; 
+    }
+    if ($status !== null) { $fields[] = 'status = ?'; $params[] = $status; $types .= 's'; }
+    if ($notes !== null) { $fields[] = 'notes = ?'; $params[] = $notes; $types .= 's'; }
+    if ($address !== null) { $fields[] = 'address = ?'; $params[] = $address; $types .= 's'; }
+
+    if (empty($fields)) {
+        errorJson('No fields provided to update', 400);
     }
 
-    foreach ($fields_to_update as $field) {
-        if (isset($data[$field])) {
-            $updates[] = "`$field` = ?";
-            $params[] = $data[$field];
-            $types .= 's';
-        }
-    }
-
-    if (empty($updates)) {
-        successJson(['message' => 'No changes supplied']);
-    }
-
+    $sql = "UPDATE leads SET " . implode(', ', $fields) . " WHERE id = ?";
     $params[] = $id;
     $types .= 'i';
-    
-    $sql = "UPDATE leads SET " . implode(', ', $updates) . " WHERE id = ?";
+
     $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        errorJson("Prepare failed: " . $conn->error, 500);
+    }
+
     $stmt->bind_param($types, ...$params);
 
     if ($stmt->execute()) {
-        successJson(['updated' => $stmt->affected_rows]);
+        successJson(['message' => 'Lead updated successfully']);
     } else {
-        errorJson('Update error: ' . $stmt->error, 500);
+        errorJson("Execute failed: " . $stmt->error, 500);
     }
 }
 
-// DELETE: remove lead
+// DELETE: delete lead
 if ($method === 'DELETE') {
     if ($id <= 0) {
-        errorJson('Missing lead id', 422);
+        errorJson('Lead ID is required for delete', 400);
     }
-    $sql = "DELETE FROM leads WHERE id = ?";
-    $stmt = $conn->prepare($sql);
+
+    $stmt = $conn->prepare("DELETE FROM leads WHERE id = ?");
     $stmt->bind_param('i', $id);
 
     if ($stmt->execute()) {
-        successJson(['deleted' => $stmt->affected_rows]);
+        successJson(['message' => 'Lead deleted successfully']);
     } else {
-        errorJson('Delete error: ' . $stmt->error, 500);
+        errorJson("Delete failed: " . $stmt->error, 500);
     }
 }
-
-$conn->close();
+?>
