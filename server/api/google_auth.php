@@ -1,14 +1,5 @@
 <?php
-$allowed_origins = ['http://localhost:3000', 'https://rajugariventures.com', 'http://127.0.0.1:3000'];
-if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-} else {
-    header("Access-Control-Allow-Origin: http://localhost:3000");
-}
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-
+require_once __DIR__ . '/../cors.php';
 // C:\xampp\htdocs\pos-system\server\api\auth.php
 
 // Enable detailed PHP error reporting for debugging
@@ -18,18 +9,7 @@ error_reporting(E_ALL);
 
 // Set headers to allow cross-origin requests (CORS)
 header('Content-Type: application/json');
-$allowed_origins = ['http://localhost:3000', 'https://rajugariventures.com', 'http://127.0.0.1:3000'];
-if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
-} else {
-}
-
-
 // Handle preflight OPTIONS request
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
 // include db_connect.php from the parent directory
 include '../db_connect.php';
 

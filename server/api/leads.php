@@ -1,19 +1,5 @@
 <?php
-$allowed_origins = ['http://localhost:3000', 'https://rajugariventures.com', 'http://127.0.0.1:3000'];
-if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-} else {
-    header("Access-Control-Allow-Origin: http://localhost:3000");
-}
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-
-$allowed_origins = ['http://localhost:3000', 'https://rajugariventures.com', 'http://127.0.0.1:3000'];
-if (isset($_SERVER['HTTP_ORIGIN']) && in_array($_SERVER['HTTP_ORIGIN'], $allowed_origins)) {
-} else {
-}
-
+require_once __DIR__ . '/../cors.php';
 // leads.php
 // Complete API for Leads used by the React frontend
 
@@ -25,66 +11,7 @@ error_reporting(E_ALL);
 header('Content-Type: application/json; charset=utf-8');
 
 // Basic CORS (adjust for production)
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-}
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
-
-session_start();
-
-// Helper functions for JSON responses
-function errorJson($message, $code = 400) {
-    http_response_code($code);
-    echo json_encode(['success' => false, 'message' => $message]);
-    exit;
-}
-
-function successJson($data = ['message' => 'Success']) {
-    echo json_encode(array_merge(['success' => true], $data));
-    exit;
-}
-
-// Function to read JSON input
-function jsonInput() {
-    $input = file_get_contents("php://input");
-    $decoded = json_decode($input, true);
-    return is_array($decoded) ? $decoded : null;
-}
-
-// Load DB connection
-require_once __DIR__ . '/../db_connect.php';
-
-// Check if MySQLi connection is valid
-if ($conn->connect_error) {
-    errorJson("Database Connection Failed: " . $conn->connect_error, 500);
-}
-
-// Simple authentication check (adjust as needed)
-// if (!isset($_SESSION['user_id'])) {
-//     errorJson('Unauthorized', 401);
-// }
-
-$method = $_SERVER['REQUEST_METHOD'];
-$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-
-// GET: list or single lead
-if ($method === 'GET') {
-    $select_fields = "id, full_name, contact_info, email, source, assigned_to_user_id, followup_reminder, status, notes, address, created_at";
-    
-    if ($id > 0) {
-        $sql = "SELECT $select_fields FROM leads WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param('i', $id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $lead = $result->fetch_assoc();
-        if ($lead) {
-            successJson(['data' => $lead]);
-        } else {
-            errorJson('Lead not found', 404);
-        }
-    } else {
+} else {
         $sql = "SELECT $select_fields FROM leads ORDER BY created_at DESC";
         $result = $conn->query($sql);
         
