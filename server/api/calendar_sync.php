@@ -19,16 +19,21 @@ if (false) {
         public function setAccessType($t) {}
         public function addScope($s) {}
         public function setRedirectUri($u) {}
-        public function fetchAccessTokenWithAuthCode($c) {}
+        public function fetchAccessTokenWithAuthCode($c) { return ['access_token' => '', 'refresh_token' => '']; }
         public function setAccessToken($t) {}
-        public function isAccessTokenExpired() {}
-        public function fetchAccessTokenWithRefreshToken($r) {}
-        public function createAuthUrl() {}
+        public function getAccessToken() { return ['access_token' => '']; }
+        public function isAccessTokenExpired() { return false; }
+        public function fetchAccessTokenWithRefreshToken($r) { return ['access_token' => '']; }
+        public function createAuthUrl() { return ''; }
+    }
+    class Google_Service_Calendar_EventsResource {
+        public function insert($calendarId, $event) { return (object)['id' => '']; }
     }
     class Google_Service_Calendar {
         const CALENDAR_EVENTS = 'https://www.googleapis.com/auth/calendar.events';
+        /** @var Google_Service_Calendar_EventsResource */
         public $events;
-        public function __construct($client) {}
+        public function __construct($client) { $this->events = new Google_Service_Calendar_EventsResource(); }
     }
     class Google_Service_Calendar_Event {
         public function __construct($data = []) {}
