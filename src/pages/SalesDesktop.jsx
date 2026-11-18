@@ -538,7 +538,7 @@ const SalesDesktop = (props) => {
       {showPaymentModal && (
         <Modal onClose={() => setShowPaymentModal(false)}>
           <PaymentForm
-            {...{ subtotal, payable, paymentAmount, changeAmount, isGstCustomer, gstInputValue, setPaymentAmount, setChangeAmount, setIsGstCustomer, setGstInputValue, handleProcessSale, selectedCustomer, paymentMode, setPaymentMode, upiId, setUpiId }}
+            {...{ subtotal, payable, discount, paymentAmount, changeAmount, isGstCustomer, gstInputValue, setPaymentAmount, setChangeAmount, setIsGstCustomer, setGstInputValue, handleProcessSale, selectedCustomer, paymentMode, setPaymentMode, upiId, setUpiId }}
           />
         </Modal>
       )}
@@ -726,6 +726,7 @@ const CustomerSelector = ({ customers = [], selectedCustomer, setSelectedCustome
 const PaymentForm = ({ 
   subtotal, 
   payable, 
+  discount = 0,
   paymentAmount, 
   changeAmount, 
   isGstCustomer, 
@@ -765,6 +766,14 @@ const PaymentForm = ({
         <span>Complete Payment</span>
         <span className="text-2xl text-emerald-600">₹{(Number(payable)||0).toFixed(2)}</span>
       </h2>
+
+      {Number(discount) > 0 && (
+        <div className="mb-4 px-3.5 py-2.5 bg-emerald-50 rounded-xl text-xs flex justify-between items-center text-gray-700 border border-emerald-200">
+          <span>Subtotal: <strong className="text-gray-900 font-bold">₹{(Number(subtotal)||0).toFixed(2)}</strong></span>
+          <span className="text-amber-700 font-bold">Discount: -₹{(Number(discount)||0).toFixed(2)}</span>
+          <span>Payable: <strong className="text-emerald-700 font-black">₹{(Number(payable)||0).toFixed(2)}</strong></span>
+        </div>
+      )}
 
       {/* Payment Mode Selector Pills */}
       <div className="mb-4">

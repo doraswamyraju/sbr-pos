@@ -279,7 +279,6 @@ const Sales = ({ user: incomingUser }) => {
     setUpiId("");
     setGstInputValue("");
     setIsGstCustomer(Boolean(selectedCustomer?.gst_number));
-    setDiscount(0);
   };
 
   /* ---------- Helper: buildReceiptHtml (used when no server receipt_html present) ---------- */

@@ -71,6 +71,7 @@ const SalesMobile = (props) => {
     setCart([]);
     setSelectedCustomer(null);
     setLastSale(null);
+    setDiscount(0);
     resetPaymentForm();
   };
 
@@ -246,9 +247,16 @@ const SalesMobile = (props) => {
               <div className="font-semibold">₹{(Number(subtotal) || 0).toFixed(2)}</div>
             </div>
 
+            {Number(discount) > 0 && (
+              <div className="mb-3">
+                <label className="text-sm text-gray-600">Discount</label>
+                <div className="font-semibold text-amber-600">-₹{(Number(discount) || 0).toFixed(2)}</div>
+              </div>
+            )}
+
             <div className="mb-3">
               <label className="text-sm text-gray-600">Payable</label>
-              <div className="font-semibold">₹{(Number(payable) || 0).toFixed(2)}</div>
+              <div className="font-semibold text-emerald-600">₹{(Number(payable) || 0).toFixed(2)}</div>
             </div>
 
             <div className="mb-3">
