@@ -211,16 +211,21 @@ const SalesDesktop = (props) => {
                 {localFilteredProducts.map((p) => {
                   const price = Number(p?.price ?? p?.sale_price ?? 0) || 0;
                   const stock = Number(p?.stock_level ?? p?.stock ?? 0);
+                  const isOutOfStock = stock <= 0;
                   const id = p?.id ?? p?.ID ?? p?.product_id ?? p?.sku ?? Math.random();
-                  const inCart = cart.find(item => item.id === p.id);
+                  const inCart = cart.find(item => item.id === id);
                   
                   return (
                     <div 
                       key={id} 
-                      onClick={() => handleAddToCart(p)}
-                      className={`relative group min-h-[155px] bg-gradient-to-b from-slate-800/90 to-slate-800/70 hover:from-slate-750 hover:to-slate-800 border ${
+                      onClick={() => !isOutOfStock && handleAddToCart(p)}
+                      className={`relative group min-h-[155px] bg-gradient-to-b from-slate-800/90 to-slate-800/70 border ${
+                        isOutOfStock 
+                          ? 'opacity-60 cursor-not-allowed border-rose-900/40' 
+                          : 'hover:from-slate-750 hover:to-slate-800 cursor-pointer hover:shadow-2xl hover:-translate-y-0.5'
+                      } ${
                         inCart ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-slate-700/80 hover:border-blue-500/60'
-                      } p-4 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-150 cursor-pointer flex flex-col justify-between overflow-hidden select-none`}
+                      } p-4 rounded-2xl shadow-lg transition-all duration-150 flex flex-col justify-between overflow-hidden select-none`}
                     >
                       {/* Top Badges: Category Tag & Stock Pill */}
                       <div className="flex justify-between items-start gap-1 mb-2">
@@ -228,19 +233,19 @@ const SalesDesktop = (props) => {
                           {p.category || 'General'}
                         </span>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
-                          stock <= 0 
+                          isOutOfStock 
                             ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' 
                             : stock <= 5 
                               ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
                               : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                         }`}>
-                          {stock <= 0 ? 'Out of Stock' : `Stock: ${stock}`}
+                          {isOutOfStock ? 'Out of Stock' : `Stock: ${stock}`}
                         </span>
                       </div>
 
                       {/* Product Title & SKU */}
                       <div className="my-1 flex-1 flex flex-col justify-center">
-                        <h3 className="font-bold text-slate-100 text-sm leading-snug line-clamp-2 group-hover:text-blue-300 transition-colors">
+                        <h3 className={`font-bold text-slate-100 text-sm leading-snug line-clamp-2 ${!isOutOfStock ? 'group-hover:text-blue-300' : ''} transition-colors`}>
                           {p.name ?? p.title ?? "Product Item"}
                         </h3>
                         <p className="text-[11px] text-slate-400 mt-1 font-mono">SKU: {p.sku || '-'}</p>
@@ -252,11 +257,25 @@ const SalesDesktop = (props) => {
                           ₹{price.toFixed(2)}
                         </div>
                         <button 
+                          disabled={isOutOfStock}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!isOutOfStock) handleAddToCart(p);
+                          }}
                           className={`px-3 py-1.5 rounded-xl flex items-center justify-center text-xs font-bold transition-all shadow-md ${
-                            inCart ? 'bg-blue-600 text-white border border-blue-400' : 'bg-slate-700 text-slate-200 group-hover:bg-blue-600 group-hover:text-white'
+                            isOutOfStock
+                              ? 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                              : inCart 
+                                ? 'bg-blue-600 text-white border border-blue-400' 
+                                : 'bg-slate-700 text-slate-200 group-hover:bg-blue-600 group-hover:text-white'
                           }`}
                         >
-                          {inCart ? `In Cart (${inCart.quantity})` : <><FaPlus className="mr-1 text-[10px]" /> Add</>}
+                          {isOutOfStock 
+                            ? 'Out of Stock' 
+                            : inCart 
+                              ? `In Cart (${inCart.quantity})` 
+                              : <><FaPlus className="mr-1 text-[10px]" /> Add</>
+                          }
                         </button>
                       </div>
                     </div>
@@ -283,33 +302,47 @@ const SalesDesktop = (props) => {
                     {localFilteredProducts.map((p) => {
                       const price = Number(p?.price ?? p?.sale_price ?? 0) || 0;
                       const stock = Number(p?.stock_level ?? p?.stock ?? 0);
-                      const inCart = cart.find(item => item.id === p.id);
+                      const isOutOfStock = stock <= 0;
+                      const id = p?.id ?? p?.ID ?? p?.product_id ?? p?.sku ?? Math.random();
+                      const inCart = cart.find(item => item.id === id);
 
                       return (
                         <tr 
-                          key={p.id} 
-                          onClick={() => handleAddToCart(p)}
-                          className="hover:bg-slate-700/50 cursor-pointer transition-colors"
+                          key={id} 
+                          onClick={() => !isOutOfStock && handleAddToCart(p)}
+                          className={`${
+                            isOutOfStock 
+                              ? 'opacity-60 cursor-not-allowed bg-slate-800/40' 
+                              : 'hover:bg-slate-700/50 cursor-pointer'
+                          } transition-colors`}
                         >
                           <td className="p-3 font-bold text-slate-100">{p.name ?? p.title}</td>
                           <td className="p-3 text-slate-400">{p.category || 'General'}</td>
                           <td className="p-3 font-mono text-slate-400">{p.sku || '-'}</td>
                           <td className="p-3 text-center font-bold">
                             <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                              stock <= 0 ? 'bg-rose-500/20 text-rose-300' : stock <= 5 ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
+                              isOutOfStock ? 'bg-rose-500/20 text-rose-300' : stock <= 5 ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
                             }`}>
-                              {stock}
+                              {isOutOfStock ? 'Out of Stock' : stock}
                             </span>
                           </td>
                           <td className="p-3 text-right font-black text-emerald-400 text-sm">₹{price.toFixed(2)}</td>
                           <td className="p-3 text-center">
                             <button 
-                              onClick={(e) => { e.stopPropagation(); handleAddToCart(p); }}
+                              disabled={isOutOfStock}
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (!isOutOfStock) handleAddToCart(p); 
+                              }}
                               className={`px-3 py-1 rounded-lg font-bold text-xs ${
-                                inCart ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-200 hover:bg-blue-600 hover:text-white'
+                                isOutOfStock
+                                  ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                                  : inCart 
+                                    ? 'bg-blue-600 text-white' 
+                                    : 'bg-slate-700 text-slate-200 hover:bg-blue-600 hover:text-white'
                               }`}
                             >
-                              {inCart ? `Qty: ${inCart.quantity}` : '+ Add'}
+                              {isOutOfStock ? 'Out of Stock' : inCart ? `Qty: ${inCart.quantity}` : '+ Add'}
                             </button>
                           </td>
                         </tr>
@@ -419,8 +452,14 @@ const SalesDesktop = (props) => {
                       </button>
                       <span className="w-6 text-center text-xs font-black text-slate-100">{item.quantity}</span>
                       <button 
+                        disabled={item.stock !== undefined && item.quantity >= item.stock}
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-300 hover:bg-slate-700 active:bg-slate-600 text-xs font-black"
+                        className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
+                          item.stock !== undefined && item.quantity >= item.stock
+                            ? 'text-slate-600 cursor-not-allowed'
+                            : 'text-slate-300 hover:bg-slate-700 active:bg-slate-600'
+                        }`}
+                        title={item.stock !== undefined && item.quantity >= item.stock ? `Max stock reached (${item.stock})` : 'Increase quantity'}
                       >
                         +
                       </button>
@@ -623,17 +662,29 @@ const ProductModalContent = ({ onClose, products, onAdd, onBarcodeScanSuccess, f
           <div className="max-h-72 overflow-y-auto border rounded-lg divide-y">
             {list.length ? list.map(p => {
               const price = Number(p?.price ?? p?.sale_price ?? 0) || 0;
+              const stock = Number(p?.stock_level ?? p?.stock ?? 0);
+              const isOutOfStock = stock <= 0;
               return (
-                <div key={p.id} className="p-3 flex justify-between items-center hover:bg-gray-50">
+                <div key={p.id} className={`p-3 flex justify-between items-center hover:bg-gray-50 ${isOutOfStock ? 'opacity-60' : ''}`}>
                   <div>
                     <div className="font-bold text-sm text-gray-800">{p.name ?? p.title}</div>
-                    <div className="text-xs text-gray-500">SKU: {p.sku || '-'} • ₹{price.toFixed(2)}</div>
+                    <div className="text-xs text-gray-500">
+                      SKU: {p.sku || '-'} • ₹{price.toFixed(2)} • 
+                      <span className={isOutOfStock ? 'text-rose-600 font-semibold ml-1' : 'text-emerald-600 font-semibold ml-1'}>
+                        {isOutOfStock ? 'Out of Stock' : `Stock: ${stock}`}
+                      </span>
+                    </div>
                   </div>
                   <button 
-                    onClick={() => { onAdd(p, 1); onClose(); }} 
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow"
+                    disabled={isOutOfStock}
+                    onClick={() => { if (!isOutOfStock) { onAdd(p, 1); onClose(); } }} 
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow ${
+                      isOutOfStock 
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
                   >
-                    + Add
+                    {isOutOfStock ? 'Out of Stock' : '+ Add'}
                   </button>
                 </div>
               );

@@ -359,19 +359,37 @@ const ProductOverlay = ({ products, term, setTerm, list, onClose, tab, setTab, o
                 {list.length ? list.map(p => {
                   const id = p?.id ?? Math.random();
                   const price = Number(p?.price ?? p?.sale_price ?? 0) || 0;
+                  const stock = Number(p?.stock_level ?? p?.stock ?? 0);
+                  const isOutOfStock = stock <= 0;
                   return (
-                    <div key={id} className="p-3 flex items-center justify-between border-b">
+                    <div key={id} className={`p-3 flex items-center justify-between border-b ${isOutOfStock ? 'opacity-60 bg-gray-50' : ''}`}>
                       <div>
                         <div className="font-semibold">{p.name ?? p.title}</div>
-                        <div className="text-sm text-gray-600">₹{price.toFixed(2)}</div>
+                        <div className="text-sm text-gray-600">
+                          ₹{price.toFixed(2)} • 
+                          <span className={isOutOfStock ? 'text-red-500 font-semibold ml-1' : 'text-green-600 font-semibold ml-1'}>
+                            {isOutOfStock ? 'Out of Stock' : `Stock: ${stock}`}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <input defaultValue={1} min={1} type="number" id={`qty-${id}`} className="w-20 p-1 border rounded" />
-                        <button className="px-3 py-2 bg-blue-600 text-white rounded" onClick={() => {
-                          const qEl = document.getElementById(`qty-${id}`);
-                          const q = qEl ? parseInt(qEl.value, 10) || 1 : 1;
-                          onAdd(p, q);
-                        }}>Add</button>
+                        {!isOutOfStock && (
+                          <input defaultValue={1} min={1} max={stock} type="number" id={`qty-${id}`} className="w-20 p-1 border rounded" />
+                        )}
+                        <button 
+                          disabled={isOutOfStock}
+                          className={`px-3 py-2 rounded text-sm font-semibold ${
+                            isOutOfStock ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white'
+                          }`} 
+                          onClick={() => {
+                            if (isOutOfStock) return;
+                            const qEl = document.getElementById(`qty-${id}`);
+                            const q = qEl ? parseInt(qEl.value, 10) || 1 : 1;
+                            onAdd(p, q);
+                          }}
+                        >
+                          {isOutOfStock ? 'Out of Stock' : 'Add'}
+                        </button>
                       </div>
                     </div>
                   );

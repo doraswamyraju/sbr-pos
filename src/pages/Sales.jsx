@@ -150,6 +150,10 @@ const Sales = ({ user: incomingUser }) => {
     if (canAddOnMobile() && !selectedCustomer) {
       return alert("Select a customer first (mobile).");
     }
+    const stock = Number(product.stock_level ?? product.stock ?? 0);
+    if (stock <= 0) {
+      return alert(`"${product.name ?? product.title ?? 'Item'}" is out of stock.`);
+    }
     const id =
       product.id ?? product.ID ?? product.product_id ?? product.sku ?? JSON.stringify(product).slice(0, 12);
     const price = Number(product.price ?? product.sale_price ?? product.price_inr ?? 0);
@@ -157,15 +161,32 @@ const Sales = ({ user: incomingUser }) => {
       return alert("Product has invalid price. Cannot add to cart.");
     }
     const existing = cart.find((c) => c.id === id);
+    const currentQty = existing ? Number(existing.quantity || 0) : 0;
+    if (currentQty + qty > stock) {
+      return alert(`Cannot add ${qty} more. Available stock: ${stock} (Already in cart: ${currentQty}).`);
+    }
     if (existing) {
-      setCart(cart.map((i) => (i.id === id ? { ...i, quantity: Number(i.quantity) + qty } : i)));
+      setCart(cart.map((i) => (i.id === id ? { ...i, quantity: Number(i.quantity) + qty, stock } : i)));
     } else {
-      setCart([...cart, { ...product, id, quantity: qty, price }]);
+      setCart([...cart, { ...product, id, quantity: qty, price, stock }]);
     }
   };
 
   const handleRemoveFromCart = (productId) => setCart(cart.filter((i) => i.id !== productId));
-  const updateQuantity = (productId, qty) => setCart(cart.map((i) => (i.id === productId ? { ...i, quantity: qty } : i)));
+  const updateQuantity = (productId, qty) => {
+    if (qty <= 0) {
+      handleRemoveFromCart(productId);
+      return;
+    }
+    const product = products.find((p) => (p.id ?? p.ID ?? p.product_id ?? p.sku) === productId);
+    if (product) {
+      const stock = Number(product.stock_level ?? product.stock ?? 0);
+      if (qty > stock) {
+        return alert(`Cannot exceed available stock (${stock}) for "${product.name ?? product.title ?? 'Item'}".`);
+      }
+    }
+    setCart(cart.map((i) => (i.id === productId ? { ...i, quantity: qty } : i)));
+  };
 
   const handleClearCart = () => {
     setCart([]);
