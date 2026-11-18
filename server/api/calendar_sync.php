@@ -13,7 +13,7 @@ $client->setApplicationName('SBR POS System');
 $client->setAuthConfig(__DIR__ . '/client_secret.json');
 $client->setAccessType('offline');
 $client->addScope(Google_Service_Calendar::CALENDAR_EVENTS); // Use CALENDAR_EVENTS scope for event management
-$client->setRedirectUri('https://rajugariventures.com/sbr-pos/server/api/calendar_sync.php');
+$client->setRedirectUri('https://pos.sribalajirenewables.com/server/api/calendar_sync.php');
 
 $method = $_SERVER['REQUEST_METHOD'];
 
