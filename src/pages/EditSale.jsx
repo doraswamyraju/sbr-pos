@@ -42,9 +42,9 @@ const EditSale = () => {
                     const itemsData = saleRes.data.items || [];
                     setCart(itemsData.map(item => ({
                         id: item.product_id,
-                        name: item.product_name,
-                        quantity: Number(item.quantity),
-                        price: Number(item.price)
+                        name: item.product_name || item.name || 'Item',
+                        quantity: Number(item.quantity ?? item.qty ?? 1),
+                        price: Number(item.price ?? item.unit_price ?? 0)
                     })));
                     setDiscount(Number(saleData.discount) || 0);
 

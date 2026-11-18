@@ -55,40 +55,69 @@ const SalesManagement = () => {
         try {
             const response = await axios.get(`${API_BASE_URL}/server/api/company_info.php`);
             const data = response.data;
-            if (data && data.company_name) {
+            if (data && (data.company_name || data.name)) {
                 setCompanyInfo({
-                    name: data.company_name,
-                    addressLine1: data.address,
-                    addressLine2: data.address_line2,
-                    phone: data.phone_number,
-                    email: data.email,
-                    gst: data.gstin,
+                    name: data.company_name || data.name,
+                    addressLine1: data.address || data.address_line1,
+                    addressLine2: data.address_line2 || '',
+                    phone: data.phone_number || data.phone,
+                    email: data.email || '',
+                    gst: data.gstin || data.gst || '',
                     logoUrl: data.logo_path,
                     default_print_format: data.default_print_format,
+                });
+            } else {
+                setCompanyInfo({
+                    name: 'Sri Balaji Renewables',
+                    addressLine1: 'No: 240, Netaji Rd, near Railway Station, Royal Nagar',
+                    addressLine2: 'Tirupati, Andhra Pradesh 517501',
+                    phone: '9849099800',
+                    email: 'hello@sribalajirenewables.com',
+                    gst: '37AGQPC5310B1ZV',
+                    default_print_format: 'A4'
                 });
             }
         } catch (err) {
             console.error('Failed to fetch company info:', err);
+            setCompanyInfo({
+                name: 'Sri Balaji Renewables',
+                addressLine1: 'No: 240, Netaji Rd, near Railway Station, Royal Nagar',
+                addressLine2: 'Tirupati, Andhra Pradesh 517501',
+                phone: '9849099800',
+                email: 'hello@sribalajirenewables.com',
+                gst: '37AGQPC5310B1ZV',
+                default_print_format: 'A4'
+            });
         }
     };
   
     const handleViewInvoice = async (sale) => {
         try {
+            setError(null);
             const response = await axios.get(`${API_BASE_URL}/server/api/sales.php?id=${sale.id}`);
             if (response.data && response.data.success) {
                 const saleData = response.data.sale || {};
                 const itemsData = Array.isArray(response.data.items) ? response.data.items : [];
 
                 const cart_items = itemsData.map(it => ({
-                    name: it.name || it.product_name || it.title || it.product || "",
+                    name: it.name || it.product_name || it.title || it.product || "Item",
                     quantity: Number(it.quantity ?? it.qty ?? 1),
                     price: Number(it.price ?? it.unit_price ?? it.rate ?? it.amount ?? 0)
                 }));
+
+                const totalNum = Number(saleData.total_amount ?? saleData.total ?? 0);
+                const discountNum = Number(saleData.discount ?? 0);
+                const payableNum = (saleData.payable_amount != null && Number(saleData.payable_amount) > 0)
+                    ? Number(saleData.payable_amount)
+                    : Math.max(0, totalNum - discountNum);
 
                 const fullSaleData = {
                     ...saleData,
                     cart_items,
                     items: itemsData,
+                    total_amount: totalNum,
+                    discount: discountNum,
+                    payable_amount: payableNum,
                     customer_name: saleData.customer_full_name || saleData.customer_name || 'Walk-in Customer',
                     gst_number: saleData.gstin || saleData.gst_number || null,
                 };

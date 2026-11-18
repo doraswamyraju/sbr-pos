@@ -15,6 +15,12 @@ const InvoiceModal = ({ sale, onClose, onNewSale, company }) => {
 
   const items = sale.cart_items || [];
 
+  const subtotalVal = Number(sale.total_amount || 0);
+  const discountVal = Number(sale.discount || 0);
+  const payableVal = (sale.payable_amount != null && Number(sale.payable_amount) > 0)
+    ? Number(sale.payable_amount)
+    : Math.max(0, subtotalVal - discountVal);
+
   const formatCurrency = (v) => `₹${(Number(v) || 0).toFixed(2)}`;
 
   // Build printable HTML for A4
@@ -81,9 +87,9 @@ const InvoiceModal = ({ sale, onClose, onNewSale, company }) => {
 
     <div class="summary">
       <table>
-        <tr><td>Subtotal</td><td style="text-align:right">${formatCurrency(sale.total_amount)}</td></tr>
-        <tr><td>Discount</td><td style="text-align:right">${formatCurrency(sale.discount || 0)}</td></tr>
-        <tr><td><strong>Payable</strong></td><td style="text-align:right"><strong>${formatCurrency(sale.payable_amount)}</strong></td></tr>
+        <tr><td>Subtotal</td><td style="text-align:right">${formatCurrency(subtotalVal)}</td></tr>
+        <tr><td>Discount</td><td style="text-align:right">${formatCurrency(discountVal)}</td></tr>
+        <tr><td><strong>Payable</strong></td><td style="text-align:right"><strong>${formatCurrency(payableVal)}</strong></td></tr>
       </table>
     </div>
 
@@ -140,9 +146,9 @@ const InvoiceModal = ({ sale, onClose, onNewSale, company }) => {
     <div style="margin-top:8px">${rows}</div>
 
     <div style="margin-top:8px;border-top:1px solid #000;padding-top:6px">
-      <div style="display:flex;justify-content:space-between"><div>Subtotal</div><div>${formatCurrency(sale.total_amount)}</div></div>
-      <div style="display:flex;justify-content:space-between"><div>Discount</div><div>${formatCurrency(sale.discount || 0)}</div></div>
-      <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:4px"><div>Payable</div><div>${formatCurrency(sale.payable_amount)}</div></div>
+      <div style="display:flex;justify-content:space-between"><div>Subtotal</div><div>${formatCurrency(subtotalVal)}</div></div>
+      <div style="display:flex;justify-content:space-between"><div>Discount</div><div>${formatCurrency(discountVal)}</div></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;margin-top:4px"><div>Payable</div><div>${formatCurrency(payableVal)}</div></div>
     </div>
 
     <div style="margin-top:12px" class="center small">Thank you!</div>
@@ -234,9 +240,9 @@ const InvoiceModal = ({ sale, onClose, onNewSale, company }) => {
         </div>
 
         <div className="mb-4 text-right">
-          <p>Subtotal: {formatCurrency(sale.total_amount)}</p>
-          <p>Discount: {formatCurrency(sale.discount || 0)}</p>
-          <p className="font-bold">Payable: {formatCurrency(sale.payable_amount)}</p>
+          <p>Subtotal: {formatCurrency(subtotalVal)}</p>
+          <p>Discount: {formatCurrency(discountVal)}</p>
+          <p className="font-bold">Payable: {formatCurrency(payableVal)}</p>
         </div>
 
         <div className="flex gap-2">

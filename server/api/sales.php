@@ -3,13 +3,10 @@ require_once __DIR__ . '/../cors.php';
 // server/api/sales.php
 // Rectified for cPanel deployment with mysqli
 
-// !! IMPORTANT: Ensure this file is in the same directory as db_connect.php,
-// or update the path below accordingly.
 include '../db_connect.php';
 
-// Allowed origin for dev app and production
-
 header("Content-Type: application/json; charset=utf-8");
+
 function respond($code, $payload) {
     http_response_code($code);
     echo json_encode($payload);
@@ -33,6 +30,82 @@ function getTableColumns($conn, $dbName, $tableName) {
     }
 }
 
+// A helper function to find the correct sale items table name
+function findSaleItemsTable($conn, $dbName) {
+    $candidateItemTables = ['sale_items','sale_item','items','sale_details','sales_items'];
+    foreach ($candidateItemTables as $t) {
+        $sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("ss", $dbName, $t);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->fetch_row()[0] > 0) {
+            return $t;
+        }
+    }
+    return null;
+}
+
+// Automatically ensure required columns exist in sales and sale_items
+function ensureDatabaseSchema($conn, $dbName) {
+    static $ensured = false;
+    if ($ensured) return;
+    $ensured = true;
+
+    try {
+        // 1. Ensure columns on sales table
+        $salesCols = getTableColumns($conn, $dbName, 'sales');
+        if (!empty($salesCols)) {
+            if (!in_array('discount', $salesCols)) {
+                @$conn->query("ALTER TABLE `sales` ADD `discount` DECIMAL(10,2) NOT NULL DEFAULT 0.00");
+            }
+            if (!in_array('payable_amount', $salesCols)) {
+                @$conn->query("ALTER TABLE `sales` ADD `payable_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00");
+            }
+            if (!in_array('payment_mode', $salesCols)) {
+                @$conn->query("ALTER TABLE `sales` ADD `payment_mode` VARCHAR(50) NULL DEFAULT 'cash'");
+            }
+            if (!in_array('upi_id', $salesCols)) {
+                @$conn->query("ALTER TABLE `sales` ADD `upi_id` VARCHAR(100) NULL");
+            }
+            if (!in_array('customer_name', $salesCols)) {
+                @$conn->query("ALTER TABLE `sales` ADD `customer_name` VARCHAR(255) NULL");
+            }
+            if (!in_array('gst_number', $salesCols)) {
+                @$conn->query("ALTER TABLE `sales` ADD `gst_number` VARCHAR(50) NULL");
+            }
+            if (!in_array('updated_at', $salesCols)) {
+                @$conn->query("ALTER TABLE `sales` ADD `updated_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+            }
+
+            // Backfill zero or null payable_amount for existing sales
+            @$conn->query("UPDATE `sales` SET `payable_amount` = GREATEST(0, `total_amount` - IFNULL(`discount`, 0)) WHERE (`payable_amount` IS NULL OR `payable_amount` = 0.00) AND `total_amount` > 0");
+        }
+
+        // 2. Ensure columns on sale_items table
+        $itemsTable = findSaleItemsTable($conn, $dbName);
+        if ($itemsTable) {
+            $itemCols = getTableColumns($conn, $dbName, $itemsTable);
+            if (!empty($itemCols)) {
+                if (!in_array('product_name', $itemCols)) {
+                    @$conn->query("ALTER TABLE `{$itemsTable}` ADD `product_name` VARCHAR(255) NULL");
+                }
+                if (!in_array('price', $itemCols)) {
+                    @$conn->query("ALTER TABLE `{$itemsTable}` ADD `price` DECIMAL(10,2) NULL");
+                }
+                // Backfill price from unit_price if needed
+                if (in_array('unit_price', $itemCols)) {
+                    @$conn->query("UPDATE `{$itemsTable}` SET `price` = `unit_price` WHERE `price` IS NULL");
+                }
+                // Backfill product_name from products table if needed
+                @$conn->query("UPDATE `{$itemsTable}` si JOIN `products` p ON si.product_id = p.id SET si.`product_name` = p.name WHERE si.`product_name` IS NULL OR si.`product_name` = ''");
+            }
+        }
+    } catch (Exception $ignored) {
+        // Continue even if schema alters fail (e.g. insufficient privileges)
+    }
+}
+
 function fetchCompanyInfo($conn) {
     global $dbname;
     $defaults = [
@@ -46,28 +119,32 @@ function fetchCompanyInfo($conn) {
         'default_print_format' => 'A4'
     ];
 
-    $check = $conn->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'company_info'");
-    $check->bind_param("s", $dbname);
-    $check->execute();
-    $result = $check->get_result();
-    if ($result->fetch_row()[0] <= 0) return $defaults;
+    try {
+        $check = $conn->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'company_info'");
+        $check->bind_param("s", $dbname);
+        $check->execute();
+        $result = $check->get_result();
+        if ($result->fetch_row()[0] <= 0) return $defaults;
 
-    $stmt = $conn->prepare("SELECT * FROM `company_info` LIMIT 1");
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $row = $result->fetch_assoc();
-    if (!$row) return $defaults;
+        $stmt = $conn->prepare("SELECT * FROM `company_info` LIMIT 1");
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        if (!$row) return $defaults;
 
-    $out = $defaults;
-    $out['company_name'] = $row['company_name'] ?? ($row['name'] ?? $out['company_name']);
-    $out['address'] = $row['address'] ?? ($row['address_line1'] ?? $out['address']);
-    $out['address_line2'] = $row['address_line2'] ?? '';
-    $out['phone_number'] = $row['phone_number'] ?? ($row['phone'] ?? $out['phone_number']);
-    $out['email'] = $row['email'] ?? $out['email'];
-    $out['gstin'] = $row['gstin'] ?? ($row['gst'] ?? '');
-    $out['logo_path'] = $row['logo_path'] ?? null;
-    $out['default_print_format'] = $row['default_print_format'] ?? $out['default_print_format'];
-    return $out;
+        $out = $defaults;
+        $out['company_name'] = $row['company_name'] ?? ($row['name'] ?? $out['company_name']);
+        $out['address'] = $row['address'] ?? ($row['address_line1'] ?? $out['address']);
+        $out['address_line2'] = $row['address_line2'] ?? '';
+        $out['phone_number'] = $row['phone_number'] ?? ($row['phone'] ?? $out['phone_number']);
+        $out['email'] = $row['email'] ?? $out['email'];
+        $out['gstin'] = $row['gstin'] ?? ($row['gst'] ?? '');
+        $out['logo_path'] = $row['logo_path'] ?? null;
+        $out['default_print_format'] = $row['default_print_format'] ?? $out['default_print_format'];
+        return $out;
+    } catch (Exception $e) {
+        return $defaults;
+    }
 }
 
 function buildReceiptHtmlWithCompany($saleRow, $items, $company) {
@@ -94,9 +171,16 @@ function buildReceiptHtmlWithCompany($saleRow, $items, $company) {
         $idx++;
     }
 
-    $total = number_format(floatval($saleRow['total_amount'] ?? $saleRow['total'] ?? 0), 2);
-    $discount = number_format(floatval($saleRow['discount'] ?? 0), 2);
-    $payable = number_format(floatval($saleRow['payable_amount'] ?? $saleRow['payable'] ?? $saleRow['grand_total'] ?? 0), 2);
+    $totalVal = floatval($saleRow['total_amount'] ?? $saleRow['total'] ?? 0);
+    $discountVal = floatval($saleRow['discount'] ?? 0);
+    $payableVal = floatval($saleRow['payable_amount'] ?? $saleRow['payable'] ?? $saleRow['grand_total'] ?? 0);
+    if ($payableVal <= 0 && $totalVal > 0) {
+        $payableVal = max(0, $totalVal - $discountVal);
+    }
+
+    $total = number_format($totalVal, 2);
+    $discount = number_format($discountVal, 2);
+    $payable = number_format($payableVal, 2);
 
     $logo_html = !empty($logo_path) ? "<img src='https://rajugariventures.com/sbr-pos/server/{$logo_path}' alt='Company Logo' style='max-height: 80px; max-width: 150px;'/>" : "";
 
@@ -113,36 +197,28 @@ function buildReceiptHtmlWithCompany($saleRow, $items, $company) {
 
 $method = $_SERVER['REQUEST_METHOD'];
 
-// A helper function to find the correct sale items table name
-function findSaleItemsTable($conn, $dbName) {
-    $candidateItemTables = ['sale_items','sale_item','items','sale_details','sales_items'];
-    foreach ($candidateItemTables as $t) {
-        $sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ss", $dbName, $t);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($result->fetch_row()[0] > 0) {
-            return $t;
-        }
-    }
-    return null;
-}
-
 if ($method === 'GET') {
+    ensureDatabaseSchema($conn, $dbname);
+
     if (isset($_GET['id'])) {
         $saleId = intval($_GET['id']);
         try {
-            $stmt = $conn->prepare("SELECT s.*, c.full_name as customer_full_name, c.is_gst_registered, c.gstin FROM `sales` s LEFT JOIN customers c ON s.customer_id = c.id WHERE s.id = ? LIMIT 1");
+            $stmt = $conn->prepare("SELECT s.*, c.full_name as customer_full_name, c.is_gst_registered, c.gstin FROM `sales` s LEFT JOIN `customers` c ON s.customer_id = c.id WHERE s.id = ? LIMIT 1");
             $stmt->bind_param("i", $saleId);
             $stmt->execute();
             $result = $stmt->get_result();
             $saleRow = $result->fetch_assoc();
             if (!$saleRow) respond(404, ['success' => false, 'message' => 'Sale not found']);
 
-            $saleRow['customer_name'] = $saleRow['customer_full_name'] ?? 'Walk-in Customer';
-            $saleRow['gst_number'] = $saleRow['gstin'];
-            $saleRow['is_gst_customer'] = $saleRow['is_gst_registered'];
+            $saleRow['customer_name'] = $saleRow['customer_full_name'] ?? ($saleRow['customer_name'] ?? 'Walk-in Customer');
+            $saleRow['gst_number'] = $saleRow['gst_number'] ?? $saleRow['gstin'];
+            $saleRow['is_gst_customer'] = $saleRow['is_gst_customer'] ?? $saleRow['is_gst_registered'];
+
+            $tot = floatval($saleRow['total_amount'] ?? $saleRow['total'] ?? 0);
+            $disc = floatval($saleRow['discount'] ?? 0);
+            if (!isset($saleRow['payable_amount']) || floatval($saleRow['payable_amount']) <= 0) {
+                $saleRow['payable_amount'] = max(0, $tot - $disc);
+            }
 
             $foundItemsTable = findSaleItemsTable($conn, $dbname);
             $items = [];
@@ -155,11 +231,41 @@ if ($method === 'GET') {
                     }
                 }
                 if ($linkCol) {
-                    $stmtItems = $conn->prepare("SELECT si.*, COALESCE(NULLIF(p.name, ''), si.product_name, si.name, 'Item') as product_name FROM `{$foundItemsTable}` si LEFT JOIN `products` p ON si.product_id = p.id WHERE `$linkCol` = ?");
+                    $hasProductNameCol = in_array('product_name', $cols);
+                    $hasNameCol = in_array('name', $cols);
+                    $nameExpr = "COALESCE(NULLIF(p.name, ''), 'Item')";
+                    if ($hasProductNameCol && $hasNameCol) {
+                        $nameExpr = "COALESCE(NULLIF(p.name, ''), NULLIF(si.product_name, ''), NULLIF(si.name, ''), 'Item')";
+                    } elseif ($hasProductNameCol) {
+                        $nameExpr = "COALESCE(NULLIF(p.name, ''), NULLIF(si.product_name, ''), 'Item')";
+                    } elseif ($hasNameCol) {
+                        $nameExpr = "COALESCE(NULLIF(p.name, ''), NULLIF(si.name, ''), 'Item')";
+                    }
+
+                    $priceExpr = "0";
+                    if (in_array('price', $cols) && in_array('unit_price', $cols)) {
+                        $priceExpr = "COALESCE(si.price, si.unit_price, 0)";
+                    } elseif (in_array('price', $cols)) {
+                        $priceExpr = "COALESCE(si.price, 0)";
+                    } elseif (in_array('unit_price', $cols)) {
+                        $priceExpr = "COALESCE(si.unit_price, 0)";
+                    }
+
+                    $stmtItems = $conn->prepare("SELECT si.*, {$nameExpr} as product_name, {$priceExpr} as price FROM `{$foundItemsTable}` si LEFT JOIN `products` p ON si.product_id = p.id WHERE si.`$linkCol` = ?");
                     $stmtItems->bind_param("i", $saleId);
                     $stmtItems->execute();
                     $resultItems = $stmtItems->get_result();
                     $items = $resultItems->fetch_all(MYSQLI_ASSOC);
+
+                    foreach ($items as &$it) {
+                        if (!isset($it['price']) && isset($it['unit_price'])) {
+                            $it['price'] = $it['unit_price'];
+                        }
+                        if (!isset($it['name']) && isset($it['product_name'])) {
+                            $it['name'] = $it['product_name'];
+                        }
+                    }
+                    unset($it);
                 }
             }
             respond(200, ['success' => true, 'sale' => $saleRow, 'items' => $items]);
@@ -168,10 +274,21 @@ if ($method === 'GET') {
         }
     } else {
         try {
-            $stmt = $conn->prepare("SELECT s.*, c.full_name as customer_name FROM `sales` s LEFT JOIN `customers` c ON s.customer_id = c.id ORDER BY id DESC LIMIT 200");
+            $stmt = $conn->prepare("SELECT s.*, c.full_name as customer_name FROM `sales` s LEFT JOIN `customers` c ON s.customer_id = c.id ORDER BY s.id DESC LIMIT 200");
             $stmt->execute();
             $result = $stmt->get_result();
             $rows = $result->fetch_all(MYSQLI_ASSOC);
+            foreach ($rows as &$r) {
+                if (empty($r['customer_name'])) {
+                    $r['customer_name'] = 'Walk-in Customer';
+                }
+                $t = floatval($r['total_amount'] ?? 0);
+                $d = floatval($r['discount'] ?? 0);
+                if (!isset($r['payable_amount']) || floatval($r['payable_amount']) <= 0) {
+                    $r['payable_amount'] = max(0, $t - $d);
+                }
+            }
+            unset($r);
             respond(200, ['success' => true, 'data' => $rows]);
         } catch (Exception $e) {
             respond(500, ['success' => false, 'message' => $e->getMessage()]);
@@ -200,6 +317,15 @@ if ($method === 'GET') {
     if (!isset($data['user_id'])) {
         $data['user_id'] = 1;
     }
+
+    $tot = floatval($data['total_amount'] ?? 0);
+    $dsc = floatval($data['discount'] ?? 0);
+    if (!isset($data['payable_amount']) || floatval($data['payable_amount']) <= 0) {
+        $data['payable_amount'] = max(0, $tot - $dsc);
+    }
+    $data['discount'] = $dsc;
+
+    ensureDatabaseSchema($conn, $dbname);
 
     try {
         $conn->begin_transaction();
@@ -238,7 +364,7 @@ if ($method === 'GET') {
                 // Guess param type
                 if (is_int($data[$payloadKey])) {
                     $paramTypes .= 'i';
-                } elseif (is_float($data[$payloadKey])) {
+                } elseif (is_float($data[$payloadKey]) || is_numeric($data[$payloadKey])) {
                     $paramTypes .= 'd';
                 } else {
                     $paramTypes .= 's';
@@ -269,9 +395,8 @@ if ($method === 'GET') {
         $insertedItems = [];
         if ($foundItemsTable) {
             $itemCols = getTableColumns($conn, $dbname, $foundItemsTable);
-            $map = ['sale_id'=>['sale_id','invoice_id','order_id'],'product_id'=>['product_id','pid','item_id'],'product_name'=>['product_name','name','title'],'quantity'=>['quantity','qty','q'],'price'=>['price','unit_price','rate']];
             $available = [];
-            foreach ($map as $k=>$cands) {
+            foreach (['sale_id'=>['sale_id','invoice_id','order_id'],'product_id'=>['product_id','pid','item_id'],'product_name'=>['product_name','name','title'],'quantity'=>['quantity','qty','q']] as $k=>$cands) {
                 foreach ($cands as $cand) {
                     foreach ($itemCols as $ic) {
                         if (strtolower($ic) === strtolower($cand)) { $available[$k] = $ic; break 2; }
@@ -285,48 +410,52 @@ if ($method === 'GET') {
                 $itQty = intval($it['quantity'] ?? $it['qty'] ?? $it['q'] ?? 1);
                 $itPrice = floatval($it['price'] ?? $it['unit_price'] ?? $it['rate'] ?? 0);
 
-                $icols = []; $ivals = []; $iparams = []; $paramTypes = '';
-                if (isset($available['sale_id'])) { $icols[]="`{$available['sale_id']}`"; $ivals[]="?"; $iparams[]=$saleId; $paramTypes .= 'i'; }
-                if (isset($available['product_id'])) { $icols[]="`{$available['product_id']}`"; $ivals[]="?"; $iparams[]=$itId; $paramTypes .= 'i'; }
-                if (isset($available['product_name'])) { $icols[]="`{$available['product_name']}`"; $ivals[]="?"; $iparams[]=$itName; $paramTypes .= 's'; }
-                if (isset($available['quantity'])) { $icols[]="`{$available['quantity']}`"; $ivals[]="?"; $iparams[]=$itQty; $paramTypes .= 'i'; }
-                if (isset($available['price'])) { $icols[]="`{$available['price']}`"; $ivals[]="?"; $iparams[]=$itPrice; $paramTypes .= 'd'; }
+                $icols = []; $ivals = []; $iparams = []; $iParamTypes = '';
+                if (isset($available['sale_id'])) { $icols[]="`{$available['sale_id']}`"; $ivals[]="?"; $iparams[]=$saleId; $iParamTypes .= 'i'; }
+                if (isset($available['product_id'])) { $icols[]="`{$available['product_id']}`"; $ivals[]="?"; $iparams[]=$itId; $iParamTypes .= 'i'; }
+                if (isset($available['product_name'])) { $icols[]="`{$available['product_name']}`"; $ivals[]="?"; $iparams[]=$itName; $iParamTypes .= 's'; }
+                if (isset($available['quantity'])) { $icols[]="`{$available['quantity']}`"; $ivals[]="?"; $iparams[]=$itQty; $iParamTypes .= 'i'; }
+                
+                // Populate both unit_price and price if available
+                if (in_array('unit_price', $itemCols)) {
+                    $icols[] = "`unit_price`"; $ivals[] = "?"; $iparams[] = $itPrice; $iParamTypes .= 'd';
+                }
+                if (in_array('price', $itemCols)) {
+                    $icols[] = "`price`"; $ivals[] = "?"; $iparams[] = $itPrice; $iParamTypes .= 'd';
+                }
                 
                 if (!empty($icols)) {
                     $sqlIt = "INSERT INTO `{$foundItemsTable}` (" . implode(",", $icols) . ") VALUES (" . implode(",", $ivals) . ")";
                     $stmti = $conn->prepare($sqlIt);
-                    $stmti->bind_param($paramTypes, ...$iparams);
+                    $stmti->bind_param($iParamTypes, ...$iparams);
                     try {
                         $stmti->execute();
                         $insertedItems[] = $conn->insert_id;
                     } catch (mysqli_sql_exception $ex) {
-                        if (strpos($ex->getMessage(), 'foreign key') !== false) {
-                            if (isset($available['product_id'])) {
-                                $altCols = []; $altVals = []; $altParams = []; $altTypes = '';
-                                foreach ($icols as $idx => $col) {
-                                    if (strpos($col, $available['product_id']) === false) {
-                                        $altCols[] = $col;
-                                        $altVals[] = $ivals[$idx];
-                                        $altParams[] = $iparams[$idx];
-                                        $altTypes .= $paramTypes[$idx];
-                                    }
+                        if (strpos($ex->getMessage(), 'foreign key') !== false && isset($available['product_id'])) {
+                            $altCols = []; $altVals = []; $altParams = []; $altTypes = '';
+                            foreach ($icols as $idx => $col) {
+                                if (strpos($col, $available['product_id']) === false) {
+                                    $altCols[] = $col;
+                                    $altVals[] = $ivals[$idx];
+                                    $altParams[] = $iparams[$idx];
+                                    $altTypes .= $iParamTypes[$idx];
                                 }
-                                try {
-                                    if (!empty($altCols)) {
-                                        $sqlAlt = "INSERT INTO `{$foundItemsTable}` (" . implode(",", $altCols) . ") VALUES (" . implode(",", $altVals) . ")";
-                                        $stmtAlt = $conn->prepare($sqlAlt);
-                                        $stmtAlt->bind_param($altTypes, ...$altParams);
-                                        $stmtAlt->execute();
-                                        $insertedItems[] = $conn->insert_id;
-                                        continue;
-                                    }
-                                } catch (mysqli_sql_exception $innerEx) {
-                                    error_log("sale items alternate insert failed: " . $innerEx->getMessage());
+                            }
+                            try {
+                                if (!empty($altCols)) {
+                                    $sqlAlt = "INSERT INTO `{$foundItemsTable}` (" . implode(",", $altCols) . ") VALUES (" . implode(",", $altVals) . ")";
+                                    $stmtAlt = $conn->prepare($sqlAlt);
+                                    $stmtAlt->bind_param($altTypes, ...$altParams);
+                                    $stmtAlt->execute();
+                                    $insertedItems[] = $conn->insert_id;
+                                    continue;
                                 }
+                            } catch (mysqli_sql_exception $innerEx) {
+                                error_log("sale items alternate insert failed: " . $innerEx->getMessage());
                             }
                         }
                         error_log("sale items insert error: " . $ex->getMessage());
-                        continue;
                     }
                 }
             }
@@ -348,6 +477,15 @@ if ($method === 'GET') {
             $saleRow['gstin'] = $data['gst_number'] ?? null;
         }
 
+        if (!isset($saleRow['discount'])) {
+            $saleRow['discount'] = floatval($data['discount'] ?? 0);
+        }
+        if (!isset($saleRow['payable_amount']) || floatval($saleRow['payable_amount']) <= 0) {
+            $tAmount = floatval($saleRow['total_amount'] ?? $data['total_amount'] ?? 0);
+            $dAmount = floatval($saleRow['discount'] ?? 0);
+            $saleRow['payable_amount'] = max(0, $tAmount - $dAmount);
+        }
+
         $itemsForReceipt = [];
         if ($foundItemsTable) {
             $cols = getTableColumns($conn, $dbname, $foundItemsTable);
@@ -358,12 +496,36 @@ if ($method === 'GET') {
                 }
             }
             if ($linkCol) {
-                $stmtI = $conn->prepare("SELECT si.*, p.name as product_name FROM `{$foundItemsTable}` si JOIN `products` p ON si.product_id = p.id WHERE `$linkCol` = ?");
+                $hasProductNameCol = in_array('product_name', $cols);
+                $hasNameCol = in_array('name', $cols);
+                $nameExpr = "COALESCE(NULLIF(p.name, ''), 'Item')";
+                if ($hasProductNameCol && $hasNameCol) {
+                    $nameExpr = "COALESCE(NULLIF(p.name, ''), NULLIF(si.product_name, ''), NULLIF(si.name, ''), 'Item')";
+                } elseif ($hasProductNameCol) {
+                    $nameExpr = "COALESCE(NULLIF(p.name, ''), NULLIF(si.product_name, ''), 'Item')";
+                } elseif ($hasNameCol) {
+                    $nameExpr = "COALESCE(NULLIF(p.name, ''), NULLIF(si.name, ''), 'Item')";
+                }
+
+                $priceExpr = "0";
+                if (in_array('price', $cols) && in_array('unit_price', $cols)) {
+                    $priceExpr = "COALESCE(si.price, si.unit_price, 0)";
+                } elseif (in_array('price', $cols)) {
+                    $priceExpr = "COALESCE(si.price, 0)";
+                } elseif (in_array('unit_price', $cols)) {
+                    $priceExpr = "COALESCE(si.unit_price, 0)";
+                }
+
+                $stmtI = $conn->prepare("SELECT si.*, {$nameExpr} as product_name, {$priceExpr} as price FROM `{$foundItemsTable}` si LEFT JOIN `products` p ON si.product_id = p.id WHERE si.`$linkCol` = ?");
                 $stmtI->bind_param("i", $saleId);
                 $stmtI->execute();
                 $resultI = $stmtI->get_result();
                 $itemsForReceipt = $resultI->fetch_all(MYSQLI_ASSOC);
             }
+        }
+
+        if (empty($itemsForReceipt)) {
+            $itemsForReceipt = $cartItemsList;
         }
         
         $company = fetchCompanyInfo($conn);
@@ -384,29 +546,25 @@ if ($method === 'GET') {
         $conn->begin_transaction();
 
         $foundItemsTable = findSaleItemsTable($conn, $dbname);
-        if (!$foundItemsTable) {
-             throw new Exception("Could not find a valid sale items table for deletion.");
-        }
-
-        $linkCol = null;
-        $cols = getTableColumns($conn, $dbname, $foundItemsTable);
-        foreach (['sale_id','invoice_id','order_id'] as $cand) {
-            foreach ($cols as $c) {
-                if (strtolower($c) === strtolower($cand)) { $linkCol = $c; break 2; }
+        if ($foundItemsTable) {
+            $linkCol = null;
+            $cols = getTableColumns($conn, $dbname, $foundItemsTable);
+            foreach (['sale_id','invoice_id','order_id'] as $cand) {
+                foreach ($cols as $c) {
+                    if (strtolower($c) === strtolower($cand)) { $linkCol = $c; break 2; }
+                }
             }
-        }
 
-        if ($linkCol) {
-            $stmt = $conn->prepare("DELETE FROM `{$foundItemsTable}` WHERE `{$linkCol}` = ?");
-            $stmt->bind_param("i", $id);
-            $stmt->execute();
-        } else {
-            throw new Exception("Could not determine linking column for sale items table.");
+            if ($linkCol) {
+                $stmt = $conn->prepare("DELETE FROM `{$foundItemsTable}` WHERE `{$linkCol}` = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+            }
         }
         
         $stmt = $conn->prepare("DELETE FROM `sales` WHERE `id` = ?");
         $stmt->bind_param("i", $id);
-            $stmt->execute();
+        $stmt->execute();
 
         $conn->commit();
         respond(200, ['success' => true, 'message' => 'Sale deleted successfully.']);
