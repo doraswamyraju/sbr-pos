@@ -4,7 +4,11 @@ require_once __DIR__ . '/../cors.php';
 
 header('Content-Type: application/json');
 session_start();
-require_once __DIR__ . '/vendor/autoload.php';
+if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
+    require_once __DIR__ . '/../vendor/autoload.php';
+} elseif (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
 include '../db_connect.php';
 
 // Google Client setup

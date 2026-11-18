@@ -13,11 +13,36 @@ function respond($code, $payload) {
     exit;
 }
 
-function getTableColumns($conn, $dbName, $tableName) {
+function getActiveDatabaseName($conn, $fallback = 'pos_system') {
     try {
+        if ($res = $conn->query("SELECT DATABASE()")) {
+            $row = $res->fetch_row();
+            if (!empty($row[0])) return $row[0];
+        }
+    } catch (Exception $e) {}
+    global $dbname;
+    return !empty($dbname) ? $dbname : $fallback;
+}
+
+function getTableColumns($conn, $tableName) {
+    // 1. Direct standard SHOW COLUMNS (requires no database name)
+    try {
+        $columns = [];
+        $res = $conn->query("SHOW COLUMNS FROM `{$tableName}`");
+        if ($res && $res->num_rows > 0) {
+            while ($row = $res->fetch_assoc()) {
+                $columns[] = $row['Field'];
+            }
+            return $columns;
+        }
+    } catch (Exception $e) {}
+
+    // 2. Fallback to INFORMATION_SCHEMA
+    try {
+        $db = getActiveDatabaseName($conn);
         $sql = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
         $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ss", $dbName, $tableName);
+        $stmt->bind_param("ss", $db, $tableName);
         $stmt->execute();
         $result = $stmt->get_result();
         $columns = [];
@@ -31,30 +56,43 @@ function getTableColumns($conn, $dbName, $tableName) {
 }
 
 // A helper function to find the correct sale items table name
-function findSaleItemsTable($conn, $dbName) {
+function findSaleItemsTable($conn) {
     $candidateItemTables = ['sale_items','sale_item','items','sale_details','sales_items'];
     foreach ($candidateItemTables as $t) {
-        $sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->bind_param("ss", $dbName, $t);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        if ($result->fetch_row()[0] > 0) {
-            return $t;
-        }
+        try {
+            $res = $conn->query("SHOW TABLES LIKE '{$t}'");
+            if ($res && $res->num_rows > 0) {
+                return $t;
+            }
+        } catch (Exception $e) {}
     }
+
+    try {
+        $db = getActiveDatabaseName($conn);
+        foreach ($candidateItemTables as $t) {
+            $sql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?";
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param("ss", $db, $t);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->fetch_row()[0] > 0) {
+                return $t;
+            }
+        }
+    } catch (Exception $e) {}
+
     return null;
 }
 
 // Automatically ensure required columns exist in sales and sale_items
-function ensureDatabaseSchema($conn, $dbName) {
+function ensureDatabaseSchema($conn) {
     static $ensured = false;
     if ($ensured) return;
     $ensured = true;
 
     try {
         // 1. Ensure columns on sales table
-        $salesCols = getTableColumns($conn, $dbName, 'sales');
+        $salesCols = getTableColumns($conn, 'sales');
         if (!empty($salesCols)) {
             if (!in_array('discount', $salesCols)) {
                 @$conn->query("ALTER TABLE `sales` ADD `discount` DECIMAL(10,2) NOT NULL DEFAULT 0.00");
@@ -83,9 +121,9 @@ function ensureDatabaseSchema($conn, $dbName) {
         }
 
         // 2. Ensure columns on sale_items table
-        $itemsTable = findSaleItemsTable($conn, $dbName);
+        $itemsTable = findSaleItemsTable($conn);
         if ($itemsTable) {
-            $itemCols = getTableColumns($conn, $dbName, $itemsTable);
+            $itemCols = getTableColumns($conn, $itemsTable);
             if (!empty($itemCols)) {
                 if (!in_array('product_name', $itemCols)) {
                     @$conn->query("ALTER TABLE `{$itemsTable}` ADD `product_name` VARCHAR(255) NULL");
@@ -102,12 +140,11 @@ function ensureDatabaseSchema($conn, $dbName) {
             }
         }
     } catch (Exception $ignored) {
-        // Continue even if schema alters fail (e.g. insufficient privileges)
+        // Continue even if schema alters fail
     }
 }
 
 function fetchCompanyInfo($conn) {
-    global $dbname;
     $defaults = [
         'company_name' => 'Sri Balaji Renewables',
         'address' => 'No: 240, Netaji Rd, near Railway Station, Royal Nagar, Tirupati, Andhra Pradesh 517501',
@@ -120,11 +157,8 @@ function fetchCompanyInfo($conn) {
     ];
 
     try {
-        $check = $conn->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'company_info'");
-        $check->bind_param("s", $dbname);
-        $check->execute();
-        $result = $check->get_result();
-        if ($result->fetch_row()[0] <= 0) return $defaults;
+        $check = $conn->query("SHOW TABLES LIKE 'company_info'");
+        if (!$check || $check->num_rows <= 0) return $defaults;
 
         $stmt = $conn->prepare("SELECT * FROM `company_info` LIMIT 1");
         $stmt->execute();
@@ -182,10 +216,12 @@ function buildReceiptHtmlWithCompany($saleRow, $items, $company) {
     $discount = number_format($discountVal, 2);
     $payable = number_format($payableVal, 2);
 
+    $saleIdDisp = htmlspecialchars(strval($saleRow['id'] ?? $saleRow['sale_id'] ?? $saleRow['invoice_id'] ?? ''));
+
     $logo_html = !empty($logo_path) ? "<img src='https://pos.sribalajirenewables.com/server/{$logo_path}' alt='Company Logo' style='max-height: 80px; max-width: 150px;'/>" : "";
 
-    $receipt = "<!doctype html><html><head><meta charset='utf-8'><title>{$invoiceType} #" . htmlspecialchars($saleRow['id'] ?? '') . "</title><style>body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#1e293b;margin:0;padding:20px;background:#fff}.invoice-card{width:100%;max-width:800px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;padding:24px;box-sizing:border-box}table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px}th,td{padding:10px;border:1px solid #cbd5e1}th{background:#f1f5f9;text-align:left;font-weight:700;color:#334155}.company{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2563eb;padding-bottom:16px}.company .title{font-size:24px;font-weight:800;color:#1e40af;margin:0}.company .sub{font-size:12px;color:#64748b;margin-top:4px}.inv-meta{text-align:right}.inv-id{font-size:20px;font-weight:700;color:#0f172a}.bill-to{margin-top:20px;background:#f8fafc;padding:12px;border-radius:8px;font-size:13px;border:1px solid #e2e8f0}.summary-table{margin-top:20px;width:280px;margin-left:auto;font-size:13px;border:none}.summary-table td{padding:6px 10px;text-align:right;border:none}.total-row{font-size:16px;font-weight:800;color:#1e40af;border-top:2px solid #2563eb !important}</style></head><body>";
-    $receipt .= "<div class='invoice-card'><div class='company'><div>{$logo_html}<h1 class='title'>{$company_name}</h1><div class='sub'>{$address}" . ($address2 ? "<br>{$address2}" : "") . "</div><div class='sub'>Phone: {$phone}" . ($email ? " | Email: {$email}" : "") . ($gst ? " | GSTIN: {$gst}" : "") . "</div></div><div class='inv-meta'><div class='inv-id'>{$invoiceType} #" . htmlspecialchars($saleRow['id'] ?? $saleRow['sale_id'] ?? $saleRow['invoice_id'] ?? '') . "</div><div style='font-size:12px;color:#64748b;margin-top:4px'>Date: " . htmlspecialchars($saleRow['created_at'] ?? $saleRow['sale_date'] ?? date('Y-m-d H:i:s')) . "</div></div></div>";
+    $receipt = "<!doctype html><html><head><meta charset='utf-8'><title>{$invoiceType} #" . $saleIdDisp . "</title><style>body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;color:#1e293b;margin:0;padding:20px;background:#fff}.invoice-card{width:100%;max-width:800px;margin:auto;border:1px solid #e2e8f0;border-radius:12px;padding:24px;box-sizing:border-box}table{width:100%;border-collapse:collapse;margin-top:20px;font-size:13px}th,td{padding:10px;border:1px solid #cbd5e1}th{background:#f1f5f9;text-align:left;font-weight:700;color:#334155}.company{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #2563eb;padding-bottom:16px}.company .title{font-size:24px;font-weight:800;color:#1e40af;margin:0}.company .sub{font-size:12px;color:#64748b;margin-top:4px}.inv-meta{text-align:right}.inv-id{font-size:20px;font-weight:700;color:#0f172a}.bill-to{margin-top:20px;background:#f8fafc;padding:12px;border-radius:8px;font-size:13px;border:1px solid #e2e8f0}.summary-table{margin-top:20px;width:280px;margin-left:auto;font-size:13px;border:none}.summary-table td{padding:6px 10px;text-align:right;border:none}.total-row{font-size:16px;font-weight:800;color:#1e40af;border-top:2px solid #2563eb !important}</style></head><body>";
+    $receipt .= "<div class='invoice-card'><div class='company'><div>{$logo_html}<h1 class='title'>{$company_name}</h1><div class='sub'>{$address}" . ($address2 ? "<br>{$address2}" : "") . "</div><div class='sub'>Phone: {$phone}" . ($email ? " | Email: {$email}" : "") . ($gst ? " | GSTIN: {$gst}" : "") . "</div></div><div class='inv-meta'><div class='inv-id'>{$invoiceType} #" . $saleIdDisp . "</div><div style='font-size:12px;color:#64748b;margin-top:4px'>Date: " . htmlspecialchars($saleRow['created_at'] ?? $saleRow['sale_date'] ?? date('Y-m-d H:i:s')) . "</div></div></div>";
     
     $receipt .= "<div class='bill-to'><strong>Bill To:</strong> " . htmlspecialchars($customer_name) . (!empty($customer_gst) ? "<br/><strong>GSTIN:</strong> " . htmlspecialchars($customer_gst) : "") . "</div>";
     
@@ -198,7 +234,7 @@ function buildReceiptHtmlWithCompany($saleRow, $items, $company) {
 $method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
-    ensureDatabaseSchema($conn, $dbname);
+    ensureDatabaseSchema($conn);
 
     if (isset($_GET['id'])) {
         $saleId = intval($_GET['id']);
@@ -220,10 +256,10 @@ if ($method === 'GET') {
                 $saleRow['payable_amount'] = max(0, $tot - $disc);
             }
 
-            $foundItemsTable = findSaleItemsTable($conn, $dbname);
+            $foundItemsTable = findSaleItemsTable($conn);
             $items = [];
             if ($foundItemsTable) {
-                $cols = getTableColumns($conn, $dbname, $foundItemsTable);
+                $cols = getTableColumns($conn, $foundItemsTable);
                 $linkCol = null;
                 foreach (['sale_id','invoice_id','order_id'] as $cand) {
                     foreach ($cols as $c) {
@@ -325,12 +361,12 @@ if ($method === 'GET') {
     }
     $data['discount'] = $dsc;
 
-    ensureDatabaseSchema($conn, $dbname);
+    ensureDatabaseSchema($conn);
 
     try {
         $conn->begin_transaction();
         $salesTable = 'sales';
-        $salesCols = getTableColumns($conn, $dbname, $salesTable);
+        $salesCols = getTableColumns($conn, $salesTable);
 
         $candidates = [
             'user_id' => ['user_id','userid','user'],
@@ -373,15 +409,10 @@ if ($method === 'GET') {
         }
 
         if (empty($insertCols)) {
-            if (in_array('total_amount', $salesCols) && isset($data['total_amount'])) {
-                $insertCols[] = "`total_amount`";
-                $insertVals[] = "?";
-                $paramValues[] = $data['total_amount'];
-                $paramTypes .= 'd';
-            } else {
-                $conn->rollback();
-                respond(500, ['success' => false, 'message' => 'Cannot map sales columns for insert.']);
-            }
+            $insertCols = ['`user_id`', '`total_amount`'];
+            $insertVals = ['?', '?'];
+            $paramValues = [intval($data['user_id'] ?? 1), $tot];
+            $paramTypes = 'id';
         }
 
         $sql = "INSERT INTO `$salesTable` (" . implode(",", $insertCols) . ") VALUES (" . implode(",", $insertVals) . ")";
@@ -390,11 +421,15 @@ if ($method === 'GET') {
         $stmt->execute();
         $saleId = $conn->insert_id;
 
-        $foundItemsTable = findSaleItemsTable($conn, $dbname);
+        if (!$saleId || $saleId <= 0) {
+            throw new Exception("Sale insert did not return a valid ID.");
+        }
+
+        $foundItemsTable = findSaleItemsTable($conn);
 
         $insertedItems = [];
         if ($foundItemsTable) {
-            $itemCols = getTableColumns($conn, $dbname, $foundItemsTable);
+            $itemCols = getTableColumns($conn, $foundItemsTable);
             $available = [];
             foreach (['sale_id'=>['sale_id','invoice_id','order_id'],'product_id'=>['product_id','pid','item_id'],'product_name'=>['product_name','name','title'],'quantity'=>['quantity','qty','q']] as $k=>$cands) {
                 foreach ($cands as $cand) {
@@ -469,6 +504,18 @@ if ($method === 'GET') {
         $result = $stmt->get_result();
         $saleRow = $result->fetch_assoc();
         
+        if (!$saleRow) {
+            $saleRow = [
+                'id' => $saleId,
+                'total_amount' => $tot,
+                'discount' => $dsc,
+                'payable_amount' => $data['payable_amount'],
+                'customer_name' => $data['customer_name'] ?? 'Walk-in Customer',
+                'created_at' => date('Y-m-d H:i:s'),
+                'payment_mode' => $data['payment_mode'] ?? 'cash'
+            ];
+        }
+
         if (empty($saleRow['customer_name'])) {
             $saleRow['customer_name'] = $data['customer_name'] ?? 'Walk-in Customer';
         }
@@ -488,7 +535,7 @@ if ($method === 'GET') {
 
         $itemsForReceipt = [];
         if ($foundItemsTable) {
-            $cols = getTableColumns($conn, $dbname, $foundItemsTable);
+            $cols = getTableColumns($conn, $foundItemsTable);
             $linkCol = null;
             foreach (['sale_id','invoice_id','order_id'] as $cand) {
                 foreach ($cols as $c) {
@@ -545,10 +592,10 @@ if ($method === 'GET') {
     try {
         $conn->begin_transaction();
 
-        $foundItemsTable = findSaleItemsTable($conn, $dbname);
+        $foundItemsTable = findSaleItemsTable($conn);
         if ($foundItemsTable) {
             $linkCol = null;
-            $cols = getTableColumns($conn, $dbname, $foundItemsTable);
+            $cols = getTableColumns($conn, $foundItemsTable);
             foreach (['sale_id','invoice_id','order_id'] as $cand) {
                 foreach ($cols as $c) {
                     if (strtolower($c) === strtolower($cand)) { $linkCol = $c; break 2; }

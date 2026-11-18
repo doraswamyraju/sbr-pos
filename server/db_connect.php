@@ -32,6 +32,7 @@ if (!$conn || $conn->connect_error) {
             $testConn = new mysqli($servername, $cred['user'], $cred['pass'], $cred['db']);
             if (!$testConn->connect_error) {
                 $conn = $testConn;
+                $dbname = $cred['db'];
                 break;
             }
         } catch (Throwable $e) {
