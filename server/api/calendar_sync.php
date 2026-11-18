@@ -11,6 +11,30 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
 }
 include '../db_connect.php';
 
+// Stubs for IDE static analysis to clear unknown class warnings
+if (false) {
+    class Google_Client {
+        public function setApplicationName($n) {}
+        public function setAuthConfig($c) {}
+        public function setAccessType($t) {}
+        public function addScope($s) {}
+        public function setRedirectUri($u) {}
+        public function fetchAccessTokenWithAuthCode($c) {}
+        public function setAccessToken($t) {}
+        public function isAccessTokenExpired() {}
+        public function fetchAccessTokenWithRefreshToken($r) {}
+        public function createAuthUrl() {}
+    }
+    class Google_Service_Calendar {
+        const CALENDAR_EVENTS = 'https://www.googleapis.com/auth/calendar.events';
+        public $events;
+        public function __construct($client) {}
+    }
+    class Google_Service_Calendar_Event {
+        public function __construct($data = []) {}
+    }
+}
+
 // Google Client setup
 $client = new Google_Client();
 $client->setApplicationName('SBR POS System');
